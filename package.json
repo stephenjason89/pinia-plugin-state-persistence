@@ -1,0 +1,61 @@
+{
+	"name": "pinia-plugin-state-persistence",
+	"type": "module",
+	"version": "1.0.0",
+	"description": "Pinia plugin for universal state persistence across synchronous and asynchronous storage systems, supporting advanced features like path inclusion/exclusion and custom serialization.",
+	"author": "Stephen Jason Wang",
+	"license": "MIT",
+	"homepage": "https://github.com/stephenjason89/pinia-plugin-state-persistence#readme",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/stephenjason89/pinia-plugin-state-persistence.git"
+	},
+	"bugs": {
+		"url": "https://github.com/stephenjason89/pinia-plugin-state-persistence/issues"
+	},
+	"keywords": [
+		"pinia",
+		"pinia-plugin",
+		"state-management",
+		"persistence",
+		"store",
+		"storage",
+		"nuxt",
+		"nuxt-module",
+		"localforage",
+		"pinia-plugin-persistedstate"
+	],
+	"main": "dist/index.js",
+	"files": [
+		"dist"
+	],
+	"scripts": {
+		"test": "bun test",
+		"build": "tsc",
+		"prepublishOnly": "npm run build",
+		"prepare": "husky",
+		"commitlint": "commitlint --edit"
+	},
+	"peerDependencies": {
+		"pinia": "^2.3.0"
+	},
+	"devDependencies": {
+		"@antfu/eslint-config": "^3.12.1",
+		"@commitlint/cli": "^19.6.1",
+		"@commitlint/config-conventional": "^19.6.0",
+		"@semantic-release/changelog": "^6.0.3",
+		"@semantic-release/commit-analyzer": "^13.0.0",
+		"@semantic-release/git": "^10.0.1",
+		"@semantic-release/github": "^11.0.1",
+		"@semantic-release/npm": "^12.0.1",
+		"@semantic-release/release-notes-generator": "^14.0.2",
+		"@types/bun": "^1.1.14",
+		"conventional-changelog-conventionalcommits": "^8.0.0",
+		"eslint": "^9.17.0",
+		"husky": "^9.1.7",
+		"lint-staged": "^15.2.11"
+	},
+	"lint-staged": {
+		"*.{js,cjs,mjs,ts,jsx,json,json5,tsx,vue,md}": "eslint --fix"
+	}
+}

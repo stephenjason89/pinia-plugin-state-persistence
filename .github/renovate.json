@@ -1,0 +1,27 @@
+{
+	"timezone": "Asia/Manila",
+	"configMigration": true,
+	"extends": [
+		"config:recommended",
+		"docker:pinDigests",
+		"helpers:pinGitHubActionDigests",
+		":pinDevDependencies"
+	],
+	"prHourlyLimit": 5,
+	"schedule": ["before 3am on Monday"],
+	"enabledManagers": ["npm", "bun"],
+	"rangeStrategy": "bump",
+	"updatePinnedDependencies": false,
+	"packageRules": [
+		{
+			"matchUpdateTypes": ["major", "pin"],
+			"enabled": false
+		},
+		{
+			"groupName": "Bumped minor version of packages",
+			"prHeader": "Bumped minor version of packages, check if builds are still passing.",
+			"matchUpdateTypes": ["minor", "patch"],
+			"matchDepTypes": ["dependencies", "devDependencies"]
+		}
+	]
+}

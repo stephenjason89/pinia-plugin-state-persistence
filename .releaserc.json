@@ -1,0 +1,36 @@
+{
+	"repositoryUrl": "git@github.com:stephenjason89/pinia-plugin-state-persistence.git",
+	"branches": ["main", { "name": "develop", "prerelease": "beta" }],
+	"plugins": [
+		"@semantic-release/commit-analyzer",
+		[
+			"@semantic-release/release-notes-generator",
+			{
+				"preset": "conventionalcommits",
+				"presetConfig": {
+					"types": [
+						{ "type": "feat", "section": "🚀 Features" },
+						{ "type": "fix", "section": "🐛 Bug Fixes" },
+						{ "type": "perf", "section": "⚡ Performance" },
+						{ "type": "chore", "section": "📦 Chores" },
+						{ "type": "docs", "section": "📚 Documentation" },
+						{ "type": "style", "section": "💄 Code Style" },
+						{ "type": "refactor", "section": "🛠️ Refactoring" },
+						{ "type": "test", "section": "✅ Testing" },
+						{ "type": "revert", "section": "⏪ Reverts" }
+					]
+				}
+			}
+		],
+		"@semantic-release/changelog",
+		"@semantic-release/github",
+		[
+			"@semantic-release/git",
+			{
+				"assets": ["CHANGELOG.md", "package.json"],
+				"message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+			}
+		],
+		"@semantic-release/npm"
+	]
+}
