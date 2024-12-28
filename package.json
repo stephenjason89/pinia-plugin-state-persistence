@@ -32,6 +32,7 @@
 	"scripts": {
 		"test": "bun test",
 		"build": "tsc",
+		"watch": "tsc --watch",
 		"prepublishOnly": "npm run build",
 		"prepare": "husky",
 		"commitlint": "commitlint --edit"
