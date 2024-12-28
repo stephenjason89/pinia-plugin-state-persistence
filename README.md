@@ -10,28 +10,40 @@ This project is a Pinia plugin designed to provide state persistence capabilitie
 - **Customizable Persistence**: Configure key names, mutation filters, and serialization/deserialization methods.
 - **Debugging Support**: Includes a built-in logger to track plugin operations.
 - **State Overwriting**: Optionally overwrite the store state during initialization.
+- **SSR Compatibility**: Fully supports server-side rendering environments, addressing edge cases with seamless state handling.
+
+## Why Choose This Plugin?
+
+- **Async Storage Support**: Unlike other plugins, this plugin natively supports asynchronous storage mechanisms such as `localforage`, making it ideal for modern applications.
+- **Enhanced Flexibility**: Offers advanced configuration options, including custom merge strategies, state filters, and serialization methods, ensuring it adapts to diverse use cases.
+- **Reliable State Management**: Resolves common issues with state persistence in both client-side and SSR setups, providing a smoother developer experience.
+- **Developer-Centric Approach**: Built with contributions and feedback in mind, ensuring issues are addressed promptly and features align with real-world needs.
 
 ## Installation
 
 ### Prerequisites
 
-- Vue 3
+- Nuxt 3 / Vue 3
 - Pinia
-- TypeScript (optional but recommended)
 
 ### Steps
 
-1. Install the plugin:
+1. Install the plugin with your preferred package manager:
 
    ```bash
    npm install pinia-plugin-state-persistence
    # or
    yarn add pinia-plugin-state-persistence
+   # or
+   pnpm i pinia-plugin-state-persistence
+   # or
+   bun i pinia-plugin-state-persistence
    ```
 
 2. Add the plugin to your Pinia store:
 
 ```javascript
+import { destr } from 'destr'
 import localforage from 'localforage'
 import { createPinia } from 'pinia'
 import { createStatePersistence } from 'pinia-plugin-state-persistence'
@@ -42,9 +54,36 @@ pinia.use(createStatePersistence({
 	key: 'my-app',
 	debug: true,
 	storage: localforage, // By default, `localStorage` is used if no storage option is specified
+	deserialize: destr, // By default, `JSON.parse` is used if not specified
 }))
 
 export default pinia
+```
+
+### Nuxt Integration
+
+To persist state using cookies in a Nuxt application, we recommend using `cookie-universal` for its robust cookie synchronization capabilities. This ensures that cookie changes on the server propagate to the client and vice versa.
+
+Here is an example Nuxt Plugin implementation:
+
+```javascript
+import cookies from 'cookie-universal'
+import { createStatePersistence } from 'pinia-plugin-state-persistence'
+
+export default defineNuxtPlugin((nuxtApp) => {
+	const event = nuxtApp.ssrContext?.event
+	const Cookies = cookies(event?.node.req, event?.node.res)
+
+	nuxtApp.$pinia.use(
+		createStatePersistence({
+			storage: {
+				getItem: Cookies.get,
+				setItem: (key, value) => Cookies.set(key, value),
+				removeItem: Cookies.remove,
+			},
+		}),
+	)
+})
 ```
 
 ## Usage
@@ -80,7 +119,6 @@ export const useExampleStore = defineStore('example', {
 			this.count++
 		},
 	},
-	// persist: true` for default persistence behavior
 	persist: {
 		key: 'example-store',
 		filter: mutation => mutation.type !== 'increment',
