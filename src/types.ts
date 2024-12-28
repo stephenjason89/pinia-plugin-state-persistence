@@ -1,7 +1,7 @@
 import type { StateTree } from 'pinia'
 
 export interface AsyncStorage {
-	getItem: (key: string) => Promise<string | null> | string | null
+	getItem: (key: string) => Promise<string | null>
 	setItem: (key: string, value: string) => any
 	removeItem: (key: string) => any
 }
