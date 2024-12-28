@@ -14,17 +14,15 @@ This project is a Pinia plugin designed to provide state persistence capabilitie
 
 ## Why Choose This Plugin?
 
+- **Zero Dependencies**: This plugin is lightweight and has no external dependencies (other than Pinia itself), ensuring minimal impact on your application's bundle size.
+- **Compact Size**: The bundle's unpacked size is just **15.3 kB**, with a minified gzip size of only **1 kB**, making it highly efficient for production use.
 - **Async Storage Support**: Unlike other plugins, this plugin natively supports asynchronous storage mechanisms such as `localforage`, making it ideal for modern applications.
+- **Queueing Mechanism**: Introduces a queueing mechanism to eliminate race condition issues during state persistence.
 - **Enhanced Flexibility**: Offers advanced configuration options, including custom merge strategies, state filters, and serialization methods, ensuring it adapts to diverse use cases.
 - **Reliable State Management**: Resolves common issues with state persistence in both client-side and SSR setups, providing a smoother developer experience.
 - **Developer-Centric Approach**: Built with contributions and feedback in mind, ensuring issues are addressed promptly and features align with real-world needs.
 
 ## Installation
-
-### Prerequisites
-
-- Nuxt 3 / Vue 3
-- Pinia
 
 ### Steps
 
