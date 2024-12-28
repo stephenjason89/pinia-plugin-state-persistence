@@ -55,8 +55,19 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				if (!savedValue)
 					return
 
-				const mergedState = merge(context.store.$state, deserialize(savedValue))
-				overwrite ? (context.store.$state = mergedState) : context.store.$patch(mergedState)
+				const mergedState = (() => {
+					if (typeof savedValue === 'object')
+						return merge(context.store.$state, savedValue)
+					try {
+						return merge(context.store.$state, deserialize(savedValue))
+					}
+					catch {
+						return null
+					}
+				})()
+
+				if (mergedState)
+					overwrite ? (context.store.$state = mergedState) : context.store.$patch(mergedState)
 			})
 		}
 
