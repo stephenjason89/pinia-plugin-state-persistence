@@ -1,3 +1,18 @@
+## [1.0.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.0.0...v1.0.1) (2024-12-28)
+
+### 🐛 Bug Fixes
+
+* asyncStorage type ([8acbac2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/8acbac292d203f43eb64770863799f8eec922681))
+* gracefully handle invalid JSON during state merge ([33a5b92](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/33a5b928da7e0283b6b553520718ffa3d2b51676))
+
+### 📚 Documentation
+
+* updated README.md ([192f921](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/192f9216bb283020fde6dfbd9a96f507d8d0e641))
+
+### 🛠️ Refactoring
+
+* **utils:** move reusable functions to utils and rename for clarity ([40851bc](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/40851bc48ad9e1bf326132c54215ea6a60f06686))
+
 ## 1.0.0 (2024-12-27)
 
 ### 🚀 Features
