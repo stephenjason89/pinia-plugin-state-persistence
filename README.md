@@ -1,4 +1,14 @@
-# Pinia Plugin - State Persistence
+<div align="center">
+  <img src="docs/public/logo.png" alt="Project Logo" width="300">
+</div>
+<p align="center">
+ Persist Pinia States Anywhere, Effortlessly
+</p>
+<p align="center">
+  <a href="https://npmjs.com/package/pinia-plugin-state-persistence"><img src="https://img.shields.io/npm/v/pinia-plugin-state-persistence?style=flat-square&labelColor=FFD700&color=FFA500" alt="npm"></a>
+  <a href="https://bundlephobia.com/result?p=pinia-plugin-state-persistence"><img src="https://img.shields.io/bundlephobia/minzip/pinia-plugin-state-persistence?style=flat-square&labelColor=32CD32&color=FFA500" alt="minizipped size"></a>
+  <a href="https://github.com/stephenjason89/pinia-plugin-state-persistence/blob/main/LICENSE"><img src="https://img.shields.io/github/license/stephenjason89/pinia-plugin-state-persistence?style=flat-square&labelColor=FFD700&color=32CD32" alt="license"></a>
+</p>
 
 ## Overview
 
