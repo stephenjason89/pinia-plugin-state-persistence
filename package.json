@@ -31,6 +31,10 @@
 	],
 	"scripts": {
 		"test": "bun test",
+		"docs:dev": "vitepress dev docs",
+		"docs:build": "vitepress build docs",
+		"docs:deploy": "bash ./deploy.sh",
+		"docs:preview": "vitepress preview docs",
 		"build": "tsc",
 		"watch": "tsc --watch",
 		"prepublishOnly": "npm run build",
@@ -54,7 +58,8 @@
 		"conventional-changelog-conventionalcommits": "^8.0.0",
 		"eslint": "^9.17.0",
 		"husky": "^9.1.7",
-		"lint-staged": "^15.2.11"
+		"lint-staged": "^15.2.11",
+		"vitepress": "^1.5.0"
 	},
 	"lint-staged": {
 		"*.{js,cjs,mjs,ts,jsx,json,json5,tsx,vue,md}": "eslint --fix"

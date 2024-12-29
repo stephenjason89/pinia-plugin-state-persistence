@@ -158,3 +158,9 @@ frankenphp
 frankenphp-worker.php
 rr
 .rr.yaml
+
+# VitePress build output
+docs/.vitepress/dist/
+
+# Temporary VitePress files
+docs/.vitepress/cache/
