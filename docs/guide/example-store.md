@@ -2,7 +2,8 @@
 
 Here’s how to define a Pinia store with persistence enabled:
 
-```javascript
+```ts twoslash
+// @noErrors
 import { defineStore } from 'pinia'
 
 export const useExampleStore = defineStore('example', {
@@ -19,7 +20,7 @@ export const useExampleStore = defineStore('example', {
 		},
 	},
 	persist: {
-		key: 'example-store',
+		key: 'example-store', // Make sure key is unique
 		debug: true, // Enable debug logging
 		filter: mutation => mutation.type !== 'increment', // Exclude increment mutations
 		storage: localStorage, // Use localStorage for persistence

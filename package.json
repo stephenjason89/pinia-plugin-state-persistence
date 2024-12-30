@@ -54,12 +54,15 @@
 		"@semantic-release/github": "^11.0.1",
 		"@semantic-release/npm": "^12.0.1",
 		"@semantic-release/release-notes-generator": "^14.0.2",
+		"@shikijs/vitepress-twoslash": "^1.24.4",
 		"@types/bun": "^1.1.14",
 		"conventional-changelog-conventionalcommits": "^8.0.0",
 		"eslint": "^9.17.0",
 		"husky": "^9.1.7",
 		"lint-staged": "^15.2.11",
-		"vitepress": "^1.5.0"
+		"pinia-plugin-state-persistence": "^1.0.1",
+		"vitepress": "^1.5.0",
+		"vitepress-plugin-group-icons": "^1.3.2"
 	},
 	"lint-staged": {
 		"*.{js,cjs,mjs,ts,jsx,json,json5,tsx,vue,md}": "eslint --fix"

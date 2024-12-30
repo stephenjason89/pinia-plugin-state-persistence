@@ -18,23 +18,25 @@ The `pinia-plugin-state-persistence` accepts a configuration object with the fol
 
 Here is an example of how to configure the plugin:
 
-```javascript
+```ts twoslash
+// @noErrors
+import localforage from 'localforage'
+import { createStatePersistence } from 'pinia-plugin-state-persistence'
+import { parse, stringify } from 'zipson'
+
 createStatePersistence({
-	key: 'example-store',
 	debug: true,
-	overwrite: true,
-	storage: localStorage, // Use localStorage for persistence
+	storage: localforage, // Use localforage for persistence
 	filter: mutation => mutation.type !== 'increment', // Exclude certain mutations
-	serialize: JSON.stringify, // Custom serialization
-	deserialize: JSON.parse, // Custom deserialization
+	serialize: stringify, // Custom serialization
+	deserialize: parse, // Custom deserialization
 })
 ```
 
 ### Key Points
 
-- **Key**: Ensure that the `key` is unique for each store to prevent conflicts.
 - **Debugging**: Enable `debug` during development to track persistence actions.
-- **Storage**: Choose between synchronous (`localStorage`) or asynchronous (`localforage`) based on your app's requirements.
+- **Storage**: Use any storage implementation that supports getItem, setItem, and removeItem. This includes built-in options like localStorage, sessionStorage, cookies, or custom implementations tailored to your application's needs, as well as asynchronous solutions like localforage.
 - **Filters**: Use the `filter` option to fine-tune which mutations should trigger persistence.
 - **Serialization/Deserialization**: Customize the state transformation process if needed.
 
@@ -42,7 +44,8 @@ createStatePersistence({
 
 If no options are provided, the plugin uses the following defaults:
 
-```javascript
+```ts twoslash
+// @noErrors
 createStatePersistence({
 	key: storeId, // Defaults to the store's ID
 	debug: false, // Debugging disabled
@@ -52,3 +55,21 @@ createStatePersistence({
 	deserialize: JSON.parse, // Default deserialization
 })
 ```
+
+### Tips and Best Practices
+
+1. **Storage Type**:
+    - Use `localStorage` for simple, synchronous storage needs.
+    - Use `localforage` or other async storage options for larger or non-blocking storage.
+
+2. **Debugging**:
+    - Enable `debug` mode during development but disable it in production for optimal performance.
+
+3. **Filter Strategy**:
+    - Exclude mutations that do not impact the persistent state (e.g., UI-only updates).
+
+4. **Versioning**:
+    - Consider versioning your serialized state to handle breaking changes in state structure.
+
+5. **Error Handling**:
+    - Wrap `deserialize` and `serialize` functions with try-catch blocks to manage unexpected errors.
