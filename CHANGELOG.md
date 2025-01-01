@@ -1,3 +1,13 @@
+## [1.1.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.1.0...v1.1.1) (2025-01-01)
+
+### 🐛 Bug Fixes
+
+* **tsconfig:** resolve ESM import errors by setting module to NodeNext ([b9ddc61](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b9ddc615b3da6e24acc8c0909ad9a0eb9079662e))
+
+### 📦 Chores
+
+* updated .gitignore and removed unnecessary files ([4b710a3](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4b710a327d78ae5b3720b8923a97db73c6b8c23f))
+
 ## [1.1.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.0.1...v1.1.0) (2025-01-01)
 
 ### 🚀 Features
