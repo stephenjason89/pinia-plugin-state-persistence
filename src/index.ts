@@ -1,6 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { PersistOptions } from './types'
-import { applyStateFilter, createLogger, isStorageValid, queueTask } from './utils'
+import { applyStateFilter, createLogger, queueTask } from './utils'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions?: PersistOptions<S>,
@@ -10,25 +10,22 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 	const log = createLogger(pluginOptions.debug)
 
 	// Get default storage (localStorage or fallback)
-	const detectStorage = async () => {
+	const detectStorage = () => {
 		if (typeof window === 'undefined') {
 			log.info('Running in SSR environment. No storage available.')
 			return null
 		}
-		try {
-			if (await isStorageValid(window.localStorage)) {
-				log.info('Using localStorage as the default storage.')
-				return window.localStorage
-			}
+		if (window.localStorage) {
+			log.info('Using localStorage as the default storage.')
+			return window.localStorage
 		}
-		catch (error) {
-			log.error('Failed to initialize localStorage:', error)
+		else {
+			log.error('No valid storage found. PersistPlugin will be disabled.')
+			return null
 		}
-		log.warn('No valid storage found. PersistPlugin will be disabled.')
-		return null
 	}
 
-	return async (context: PiniaPluginContext) => {
+	return (context: PiniaPluginContext) => {
 		const storeOptions = context.options.persist
 		if (!storeOptions)
 			return
@@ -36,7 +33,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const {
 			key = context.store.$id,
 			overwrite = false,
-			storage = await detectStorage(),
+			storage = detectStorage(),
 			filter = () => true,
 			serialize = JSON.stringify,
 			deserialize = JSON.parse,
@@ -45,11 +42,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			exclude = null,
 		} = { ...pluginOptions, ...(typeof storeOptions === 'object' && storeOptions) }
 
-		if (!storage || !(await isStorageValid(storage)))
+		if (!storage)
 			return
 
 		// Load persisted state
-		const loadState = async () => {
+		const loadState = () => {
 			queueTask(queues, key, async () => {
 				const savedValue = await storage.getItem(key)
 				if (!savedValue)

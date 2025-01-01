@@ -1,5 +1,3 @@
-import type { AsyncStorage } from './types'
-
 export function createLogger(debug: boolean) {
 	return {
 		info: (message: string, ...args: any[]) => {
@@ -33,7 +31,7 @@ export function setNestedValue(obj: any, path: string, value: any) {
 	}, obj)
 }
 
-export function applyStateFilter(state: Record<string, any>,	include?: string | string[],	exclude?: string | string[]) {
+export function applyStateFilter(state: Record<string, any>,	include?: string | string[],	exclude?: string | string[]): Record<string, any> {
 	const includeArray = include ? ([] as string[]).concat(include) : null
 	const excludeArray = exclude ? ([] as string[]).concat(exclude) : null
 
@@ -63,26 +61,4 @@ export function queueTask(queues: Record<string, Promise<void>>, key: string, ta
 	if (!queues[key])
 		queues[key] = Promise.resolve()
 	queues[key] = queues[key].then(task).catch(error => console.error(`Error processing queue for key '${key}':`, error))
-}
-
-// Validate storage for write-read capability
-export async function isStorageValid(storage: AsyncStorage | Storage): Promise<boolean> {
-	const testKey = '__persist_test__'
-
-	try {
-		const result = storage.setItem(testKey, 'test')
-		const cleanup = () => storage.removeItem(testKey)
-
-		if (result instanceof Promise) {
-			await result.then(cleanup)
-		}
-		else {
-			cleanup()
-		}
-
-		return true
-	}
-	catch {
-		return false
-	}
 }
