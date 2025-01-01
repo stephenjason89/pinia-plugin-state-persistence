@@ -23,7 +23,7 @@ export const useExampleStore = defineStore('example', {
 		key: 'example-store', // Make sure key is unique
 		debug: true, // Enable debug logging
 		filter: mutation => mutation.type !== 'increment', // Exclude increment mutations
-		storage: localStorage, // Use localStorage for persistence
+		storage: window?.sessionStorage, // Nullish coalescing ensures no errors in SSR environments where 'window' is undefined.
 		serialize: JSON.stringify, // Custom serialization (default)
 		deserialize: JSON.parse, // Custom deserialization (default)
 	},

@@ -27,6 +27,7 @@ import { parse, stringify } from 'zipson'
 createStatePersistence({
 	debug: true,
 	storage: localforage, // Use localforage for persistence
+	clientOnly: true, // Restricts storage to the client-side as localForage lacks support in SSR environments.
 	filter: mutation => mutation.type !== 'increment', // Exclude certain mutations
 	serialize: stringify, // Custom serialization
 	deserialize: parse, // Custom deserialization
