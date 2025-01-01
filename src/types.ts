@@ -10,6 +10,7 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 	key?: string
 	debug?: boolean
 	overwrite?: boolean
+	clientOnly?: boolean
 	storage?: Storage | AsyncStorage
 	filter?: (mutation: any, state: S) => boolean
 	serialize?: (state: Partial<S>) => string
