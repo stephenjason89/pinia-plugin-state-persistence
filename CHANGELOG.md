@@ -1,3 +1,9 @@
+## [1.2.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.2...v1.2.3) (2025-01-02)
+
+### 🐛 Bug Fixes
+
+* re-add types to package.json and update Vitepress config ([d436421](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/d4364217f84c5464967f3307a4f69f174709c3d0))
+
 ## [1.2.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.1...v1.2.2) (2025-01-02)
 
 ### 🐛 Bug Fixes
