@@ -1,3 +1,16 @@
+## [1.2.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.1.1...v1.2.0) (2025-01-02)
+
+### 🚀 Features
+
+* add support for CommonJS module format ([8259353](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/8259353b9fd3425fe4357a026e2c27c21c82e01a))
+* skip localforage on SSR by default ([f989de6](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/f989de603034b56bebb9d3753588f3ec41b6ee78))
+* **ts:** enable strict mode and fix related type errors ([23d2ae9](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/23d2ae9a234a99947560d74ef61e3302c25b7dfd))
+
+### 📚 Documentation
+
+* add advanced use cases documentation ([1713fb2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/1713fb232a2a337cf4a4a6f7673a35dbc95ec8fa))
+* improve clientOnly examples and clarify comments ([938bac3](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/938bac3cafdbc6fa8858719b38f51efe6b1d6e9a))
+
 ## [1.1.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.1.0...v1.1.1) (2025-01-01)
 
 ### 🐛 Bug Fixes
