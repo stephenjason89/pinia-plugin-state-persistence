@@ -22,13 +22,7 @@ export default defineConfig({
 	markdown: {
 		typographer: true,
 		codeTransformers: [
-			transformerTwoslash({
-				twoslashOptions: {
-					compilerOptions: {
-						types: ['pinia-plugin-state-persistence'],
-					},
-				},
-			}),
+			transformerTwoslash(),
 		],
 		config(md) {
 			md.use(groupIconMdPlugin)
@@ -53,6 +47,7 @@ export default defineConfig({
 				{ text: 'Nuxt Integration', link: '/guide/nuxt-integration' },
 				{ text: 'Configuration', link: '/guide/configuration' },
 				{ text: 'Example Store', link: '/guide/example-store' },
+				{ text: 'Advance Usage', link: '/guide/advance-usage' },
 			],
 			'/api/': [
 				{ text: 'Overview', link: '/api/' },
