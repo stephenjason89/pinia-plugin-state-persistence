@@ -22,7 +22,14 @@ export default defineConfig({
 	markdown: {
 		typographer: true,
 		codeTransformers: [
-			transformerTwoslash(),
+			transformerTwoslash({
+				twoslashOptions: {
+					compilerOptions: {
+						types: ['pinia-plugin-state-persistence'],
+						paths: { 'pinia-plugin-state-persistence': ['./dist'] },
+					},
+				},
+			}),
 		],
 		config(md) {
 			md.use(groupIconMdPlugin)
