@@ -6,7 +6,8 @@
 		"moduleResolution": "NodeNext",
 		"strict": true,
 		"declaration": true,
-		"outDir": "./dist",
+		"declarationDir": "./dist",
+		"outDir": "./dist/esm",
 		"esModuleInterop": true,
 		"skipLibCheck": true
 	},
