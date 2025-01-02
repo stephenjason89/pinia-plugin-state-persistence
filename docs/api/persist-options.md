@@ -24,7 +24,7 @@ createStatePersistence({
 	key: 'example-store',
 	debug: true,
 	overwrite: true,
-	clientOnly: true,
+	clientOnly: true, // Since `sessionStorage` is null in SSR environments, this flag doesn't have an effect here. However, if the storage mechanism supports both client and server environments, this ensures the persistence runs on the client only.
 	storage: window?.sessionStorage, // Nullish coalescing ensures no errors in SSR environments where 'window' is undefined.
 	filter: mutation => mutation.type !== 'increment',
 	serialize: JSON.stringify,
