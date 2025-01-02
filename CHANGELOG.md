@@ -1,3 +1,9 @@
+## [1.2.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.0...v1.2.1) (2025-01-02)
+
+### 🐛 Bug Fixes
+
+* re-add main field for compatibility with legacy tools ([ffabb3e](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/ffabb3e6b2caaf87a67f72c91a415bb4df7f52f7))
+
 ## [1.2.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.1.1...v1.2.0) (2025-01-02)
 
 ### 🚀 Features
