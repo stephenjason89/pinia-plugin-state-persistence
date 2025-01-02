@@ -1,9 +1,11 @@
 import type { StateTree } from 'pinia'
 
-export interface AsyncStorage {
-	getItem: (key: string) => Promise<string | null>
-	setItem: (key: string, value: string) => any
-	removeItem: (key: string) => any
+type MaybePromise<T> = T | Promise<T>
+
+export interface Storage {
+	getItem: (key: string) => MaybePromise<string | object | null>
+	setItem: (key: string, value: string) => MaybePromise<any>
+	removeItem: (key: string) => MaybePromise<any>
 }
 
 export interface PersistOptions<S extends StateTree = StateTree> {
@@ -11,7 +13,7 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 	debug?: boolean
 	overwrite?: boolean
 	clientOnly?: boolean
-	storage?: Storage | AsyncStorage
+	storage?: Storage
 	filter?: (mutation: any, state: S) => boolean
 	serialize?: (state: Partial<S>) => string
 	deserialize?: (state: string) => Partial<S>
@@ -21,6 +23,10 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 }
 
 declare module 'pinia' {
+	export interface PiniaCustomProperties {
+		$persist: () => void
+		$restore: () => void
+	}
 	// eslint-disable-next-line unused-imports/no-unused-vars
 	export interface DefineStoreOptionsBase<S extends StateTree, Store> {
 		persist?: boolean | PersistOptions<S>

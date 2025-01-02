@@ -1,4 +1,4 @@
-export function createLogger(debug: boolean) {
+export function createLogger(debug?: boolean) {
 	return {
 		info: (message: string, ...args: any[]) => {
 			if (debug) {
@@ -31,7 +31,7 @@ export function setNestedValue(obj: any, path: string, value: any) {
 	}, obj)
 }
 
-export function applyStateFilter(state: Record<string, any>,	include?: string | string[],	exclude?: string | string[]): Record<string, any> {
+export function applyStateFilter(state: Record<string, any>,	include: string | string[] | null,	exclude: string | string[] | null): Record<string, any> {
 	const includeArray = include ? ([] as string[]).concat(include) : null
 	const excludeArray = exclude ? ([] as string[]).concat(exclude) : null
 

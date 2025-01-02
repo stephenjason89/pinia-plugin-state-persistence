@@ -48,6 +48,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const loadState = () => {
 			queueTask(queues, key, async () => {
 				const savedValue = await storage.getItem(key)
+
 				if (!savedValue)
 					return
 
@@ -79,6 +80,10 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				await storage.setItem(key, serializedState)
 			})
 		}
+
+		context.store.$restore = loadState
+		context.store.$persist = () =>
+			persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
 
 		loadState()
 		context.store.$subscribe(persistState)

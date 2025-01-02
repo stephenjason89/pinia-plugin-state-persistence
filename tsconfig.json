@@ -1,14 +1,15 @@
 {
 	"compilerOptions": {
-		"target": "ESNext", // Use the latest JavaScript features
-		"lib": ["ESNext", "dom"], // Include latest ECMAScript and DOM APIs
-		"module": "NodeNext", // Output as ES Modules
-		"moduleResolution": "NodeNext", // Resolve imports/extensions per Node.js ESM behavior
-		"declaration": true, // Generate declaration files for the package
-		"outDir": "./dist", // Specify output directory
-		"esModuleInterop": true, // Enable compatibility for CommonJS and ESM
-		"skipLibCheck": true // Skip type checking of declaration files
+		"target": "ESNext",
+		"lib": ["ESNext", "dom"],
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
+		"strict": true,
+		"declaration": true,
+		"outDir": "./dist",
+		"esModuleInterop": true,
+		"skipLibCheck": true
 	},
-	"include": ["src/**/*.ts"], // Include source TypeScript files
-	"exclude": ["node_modules", "dist"] // Exclude unnecessary directories
+	"include": ["src/**/*.ts"],
+	"exclude": ["node_modules", "dist"]
 }
