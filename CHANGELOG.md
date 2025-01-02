@@ -1,3 +1,9 @@
+## [1.2.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.1...v1.2.2) (2025-01-02)
+
+### 🐛 Bug Fixes
+
+* **release:** ensure package.json version is updated during release ([0345d19](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/0345d19ad6fbc7ba7b25c0b76e5dff841795083e))
+
 ## [1.2.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.0...v1.2.1) (2025-01-02)
 
 ### 🐛 Bug Fixes
