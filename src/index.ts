@@ -41,7 +41,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			exclude = null,
 		} = { ...pluginOptions, ...(typeof storeOptions === 'object' && storeOptions) }
 
-		if (!storage || (clientOnly && typeof window === 'undefined'))
+		if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined'))
 			return
 
 		// Load persisted state
