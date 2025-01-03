@@ -41,3 +41,33 @@ This is particularly helpful in batch updates or custom save operations that byp
 ## Conclusion
 
 The `$restore` and `$persist` functions, along with comprehensive plugin configurations, provide flexibility and power for state management. By hooking into Pinia's `$subscribe`, most persistence needs are automatically managed, ensuring seamless state synchronization. These functions, however, offer additional control for edge cases, such as handling manual updates to storage or unique custom scenarios. Leverage these tools to build sophisticated applications with reliable persistence and efficient state synchronization.
+
+## Object Key Persistence
+
+The plugin now supports persisting state properties on separate keys when an object is provided for the `key` option. This allows finer control over how state properties are stored.
+
+### Example Configuration
+
+```ts twoslash
+// @noErrors
+import { defineStore } from 'pinia'
+
+export const useExampleStore = defineStore('example', {
+	state: () => ({
+		userId: 1,
+		token: 'Bearer ...',
+	}),
+	persist: {
+		key: {
+			userId: 'user-id-storage-key',
+			token: 'user-token-storage-key',
+		}
+	},
+})
+```
+
+### Behavior
+
+- Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
+- Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
+- This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.

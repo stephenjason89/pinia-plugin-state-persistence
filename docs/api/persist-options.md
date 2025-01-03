@@ -6,16 +6,16 @@
 
 ### Properties
 
-| Property        | Type                                | Description                                                                 |
-|-----------------|-------------------------------------|-----------------------------------------------------------------------------|
-| `key`           | `string`                            | Key used to store data in storage. Defaults to the store's ID.             |
-| `debug`         | `boolean`                          | Enables logging for debugging purposes. Defaults to `false`.               |
-| `overwrite`     | `boolean`                          | Whether to overwrite the store state on initialization. Defaults to `false`.|
-| `clientOnly`  | `boolean`                          | Determines if storage operations should be restricted to the client environment only. Defaults to false.|
-| `storage`       | `Storage \| AsyncStorage`          | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
-| `filter`        | `(mutation, state) => boolean`     | Filters which mutations trigger persistence.                               |
-| `serialize`     | `(state) => string`                | Custom function for serializing the state.                                 |
-| `deserialize`   | `(state: string) => Partial<S>`    | Custom function for deserializing the state.                               |
+| Property        | Type                            | Description                                                                                                                        |
+|-----------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `key`           | `string \| Record<keyof S, string>`      | Key/s used to store data in storage. Defaults to the store's ID.                                                                   |
+| `debug`         | `boolean`                       | Enables logging for debugging purposes. Defaults to `false`.                                                                       |
+| `overwrite`     | `boolean`                       | Whether to overwrite the store state on initialization. Defaults to `false`.                                                       |
+| `clientOnly`  | `boolean`                       | Determines if storage operations should be restricted to the client environment only. Defaults to false.                           |
+| `storage`       | `Storage \| AsyncStorage`       | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
+| `filter`        | `(mutation, state) => boolean`  | Filters which mutations trigger persistence.                                                                                       |
+| `serialize`     | `(state) => string`             | Custom function for serializing the state.                                                                                         |
+| `deserialize`   | `(state: string) => Partial<S>` | Custom function for deserializing the state.                                                                                       |
 
 ### Example Usage
 

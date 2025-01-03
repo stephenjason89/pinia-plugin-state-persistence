@@ -104,16 +104,16 @@ export default defineNuxtPlugin((nuxtApp) => {
 
 The plugin accepts a `PersistOptions` object with the following properties:
 
-| Property      | Type                                | Description                                                                 |
-|---------------|-------------------------------------|-----------------------------------------------------------------------------|
-| `key`         | `string`                            | Key used to store data in storage. Defaults to the store's ID.             |
-| `debug`       | `boolean`                          | Enables logging for debugging purposes. Defaults to `false`.               |
-| `overwrite`   | `boolean`                          | Whether to overwrite the store state on initialization. Defaults to `false`.|
-| `clientOnly`  | `boolean`                          | Determines if storage operations should be restricted to the client environment only. Defaults to false.|
-| `storage`     | `Storage \| AsyncStorage`            | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
-| `filter`      | `(mutation, state) => boolean`     | Filters which mutations trigger persistence.                               |
-| `serialize`   | `(state) => string`                | Custom function for serializing the state.                                 |
-| `deserialize` | `(state: string) => Partial<S>`    | Custom function for deserializing the state.                               |
+| Property      | Type                            | Description                                                                                                                        |
+|---------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
+| `key`         | `string \| Record<keyof S, string>` | Key/s used to store data in storage. Defaults to the store's ID.                                                                   |
+| `debug`       | `boolean`                       | Enables logging for debugging purposes. Defaults to `false`.                                                                       |
+| `overwrite`   | `boolean`                       | Whether to overwrite the store state on initialization. Defaults to `false`.                                                       |
+| `clientOnly`  | `boolean`                       | Determines if storage operations should be restricted to the client environment only. Defaults to false.                           |
+| `storage`     | `Storage \| AsyncStorage`       | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
+| `filter`      | `(mutation, state) => boolean`  | Filters which mutations trigger persistence.                                                                                       |
+| `serialize`   | `(state) => string`             | Custom function for serializing the state.                                                                                         |
+| `deserialize` | `(state: string) => Partial<S>` | Custom function for deserializing the state.                                                                                       |
 
 ### Example Store
 
@@ -138,6 +138,75 @@ export const useExampleStore = defineStore('example', {
 	},
 })
 ```
+
+## Advanced Use Cases
+
+This page explores advanced options and configurations available in your project to enhance state management and persistence. These options provide developers with powerful tools to create robust, efficient, and user-friendly applications.
+
+### `$restore`
+
+The `$restore` function allows you to manually synchronize the state from persistent storage back into the Pinia store. While `$restore` is automatically called during initialization, you may use it in scenarios where:
+
+- The persistent storage is updated manually and needs to be synced back to the store.
+- State modifications occur outside the scope of the normal flow.
+
+#### Example Usage
+
+```typescript
+const store = useStore()
+
+// Restore the state from storage manually
+store.$restore()
+```
+
+Use this functionality sparingly for specific cases to ensure the store stays in sync with storage.
+
+### `$persist`
+
+The `$persist` function forces the store to persist its current state into the configured storage. Normally, persistence is automatically handled via `$subscribe`, but `$persist` is useful in scenarios where:
+
+- State changes are not detected by `$subscribe`.
+- Custom logic requires explicitly saving the state.
+
+#### Example Usage
+
+```typescript
+const store = useStore()
+
+// Force persist the current state to storage manually
+store.$persist()
+```
+
+This is particularly helpful in batch updates or custom save operations that bypass normal mutation flows.
+
+## Object Key Persistence
+
+The plugin now supports persisting state properties on separate keys when an object is provided for the `key` option. This allows finer control over how state properties are stored.
+
+### Example Configuration
+
+```typescript
+import { defineStore } from 'pinia'
+
+export const useExampleStore = defineStore('example', {
+	state: () => ({
+		userId: 1,
+		token: 'Bearer ...',
+	}),
+	persist: {
+		key: {
+			userId: 'user-id-storage-key',
+			token: 'user-token-storage-key',
+		}
+	},
+})
+```
+
+### Behavior
+
+- Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
+- Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
+- This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
 ## License
 

@@ -15,7 +15,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			log.info('Running in SSR environment. No storage available.')
 			return null
 		}
-		if (window?.localStorage) {
+		if (window.localStorage) {
 			log.info('Using localStorage as the default storage.')
 			return window.localStorage
 		}
