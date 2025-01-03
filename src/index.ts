@@ -11,14 +11,16 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 	// Get default storage (localStorage or fallback)
 	const detectStorage = () => {
+		if (typeof window === 'undefined') {
+			log.info('Running in SSR environment. No storage available.')
+			return null
+		}
 		if (window?.localStorage) {
 			log.info('Using localStorage as the default storage.')
 			return window.localStorage
 		}
 		else {
-			if (typeof window === 'undefined')
-				log.info('Running in SSR environment. No storage available.')
-			else log.error('No valid storage found. PersistPlugin will be disabled.')
+			log.error('No valid storage found. PersistPlugin will be disabled.')
 			return null
 		}
 	}
