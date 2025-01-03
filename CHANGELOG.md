@@ -1,3 +1,13 @@
+## [1.3.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.1...v1.3.2) (2025-01-03)
+
+### 🐛 Bug Fixes
+
+* restore type fallback for key property in state persistence ([47d1a5f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/47d1a5fe86f2fc80c65f369be2f6c8031cda2dfa))
+
+### 📚 Documentation
+
+* introduce advanced usage in README and object key persistence in documentation ([5796030](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5796030ad5777079dddea66155478a84e6db30cb))
+
 ## [1.3.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.0...v1.3.1) (2025-01-03)
 
 ### 🐛 Bug Fixes
