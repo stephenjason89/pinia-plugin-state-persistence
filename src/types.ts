@@ -9,7 +9,7 @@ export interface Storage {
 }
 
 export interface PersistOptions<S extends StateTree = StateTree> {
-	key?: string | Record<keyof S, string>
+	key?: string | Record<keyof S, string> | Record<string, string>
 	debug?: boolean
 	overwrite?: boolean
 	clientOnly?: boolean
