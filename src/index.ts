@@ -1,6 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { PersistOptions } from './types.js'
-import { applyStateFilter, createLogger, queueTask } from './utils.js'
+import { applyStateFilter, createLogger, getObjectDiff, queueTask } from './utils.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions?: PersistOptions<S>,
@@ -35,7 +35,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			filter = () => true,
 			serialize = JSON.stringify,
 			deserialize = JSON.parse,
-			merge = (_: any, savedState: any) => savedState,
 			clientOnly = false,
 			include = null,
 			exclude = null,
@@ -46,26 +45,24 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		// Load persisted state
 		const loadState = () => {
-			queueTask(queues, key, async () => {
-				const savedValue = await storage.getItem(key)
-
-				if (!savedValue)
-					return
-
-				const mergedState = (() => {
-					if (typeof savedValue === 'object')
-						return merge(context.store.$state, savedValue)
-					try {
-						return merge(context.store.$state, deserialize(savedValue))
-					}
-					catch {
-						return null
-					}
-				})()
-
-				if (mergedState)
-					overwrite ? (context.store.$state = mergedState) : context.store.$patch(mergedState)
+			const getItem = (key: string) => queueTask(queues, key, async () => await storage.getItem(key))
+			getItem(typeof key === 'string' ? key : context.store.$id).then((savedValue) => {
+				if (savedValue) {
+					const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
+					overwrite ? (context.store.$state = savedState) : context.store.$patch(savedState)
+				}
 			})
+			if (typeof key === 'object') {
+				Object.entries(key).map(([stateKey, storageKey]) =>
+					getItem(storageKey).then((savedValue) => {
+						if (savedValue) {
+							context.store.$patch({
+								[stateKey]: typeof savedValue === 'object' ? savedValue : deserialize(savedValue),
+							})
+						}
+					}),
+				)
+			}
 		}
 
 		// Persist state on mutation
@@ -73,12 +70,25 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (!filter(mutation, state))
 				return
 
-			const processedState = applyStateFilter(state, include, exclude)
-			const serializedState = serialize(processedState)
+			const filteredState = applyStateFilter(state, include, exclude)
+			const setItem = (key: string, value: string) => {
+				queueTask(queues, key, async () => {
+					await storage.setItem(key, value)
+				})
+			}
 
-			queueTask(queues, key, async () => {
-				await storage.setItem(key, serializedState)
-			})
+			if (typeof key === 'string') {
+				setItem(key, serialize(filteredState))
+			}
+			else {
+				console.log(context.store.$id, (getObjectDiff(filteredState, key)))
+				setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
+				for (const [stateKey, storageKey] of Object.entries(key)) {
+					if (filteredState[stateKey] !== undefined) {
+						setItem(storageKey, serialize(filteredState[stateKey]))
+					}
+				}
+			}
 		}
 
 		context.store.$restore = loadState

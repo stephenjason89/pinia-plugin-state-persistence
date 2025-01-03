@@ -57,8 +57,15 @@ export function applyStateFilter(state: Record<string, any>,	include: string | s
 }
 
 // Queue processing for async storage
-export function queueTask(queues: Record<string, Promise<void>>, key: string, task: () => Promise<void>) {
+export function queueTask(queues: Record<string, Promise<any>>, key: string, task: () => Promise<any>) {
 	if (!queues[key])
 		queues[key] = Promise.resolve()
 	queues[key] = queues[key].then(task).catch(error => console.error(`Error processing queue for key '${key}':`, error))
+	return queues[key]
+}
+
+export function getObjectDiff(object1: Record<string, any>, object2: Record<string, any>) {
+	return Object.fromEntries(
+		Object.entries(object1).filter(([key]) => !(key in object2)),
+	)
 }

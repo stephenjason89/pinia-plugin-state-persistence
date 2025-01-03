@@ -9,7 +9,7 @@ export interface Storage {
 }
 
 export interface PersistOptions<S extends StateTree = StateTree> {
-	key?: string
+	key?: string | Record<keyof S, string> | Record<string, string>
 	debug?: boolean
 	overwrite?: boolean
 	clientOnly?: boolean
@@ -17,7 +17,6 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 	filter?: (mutation: any, state: S) => boolean
 	serialize?: (state: Partial<S>) => string
 	deserialize?: (state: string) => Partial<S>
-	merge?: (currentState: S, savedState: Partial<S>) => S
 	include?: string | string[]
 	exclude?: string | string[]
 }
