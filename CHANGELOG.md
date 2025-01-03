@@ -1,3 +1,9 @@
+## [1.3.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.3...v1.3.0) (2025-01-03)
+
+### 🚀 Features
+
+* support object keys for state persistence ([f70f2ed](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/f70f2ed352ac2c7a3169d0b09650f0c877936e4a))
+
 ## [1.2.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.2...v1.2.3) (2025-01-02)
 
 ### 🐛 Bug Fixes
