@@ -1,3 +1,10 @@
+## [1.3.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.0...v1.3.1) (2025-01-03)
+
+### 🐛 Bug Fixes
+
+* edge-case window not defined on SSR error ([2b8eb6e](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/2b8eb6e4d4a5b8648689b41cfe6e2df2fb076033))
+* remove fallback type for key in PersistOptions ([5792d86](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5792d8602ef49ef10d2de145a766444d73f92e0b))
+
 ## [1.3.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.2.3...v1.3.0) (2025-01-03)
 
 ### 🚀 Features
