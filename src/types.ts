@@ -21,6 +21,10 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 	exclude?: string | string[]
 }
 
+export interface GlobalPersistOptions<S extends StateTree = StateTree> extends Omit<PersistOptions<S>, 'key'> {
+	key?: string
+}
+
 declare module 'pinia' {
 	export interface PiniaCustomProperties {
 		$persist: () => void

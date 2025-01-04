@@ -1,15 +1,14 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
-import type { PersistOptions } from './types.js'
+import type { GlobalPersistOptions } from './types.js'
 import { applyStateFilter, createLogger, getObjectDiff, queueTask } from './utils.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
-	globalOptions?: PersistOptions<S>,
+	globalOptions?: GlobalPersistOptions<S>,
 ): PiniaPlugin {
 	const pluginOptions = globalOptions || {}
 	const queues: Record<string, Promise<void>> = {}
 	const log = createLogger(pluginOptions.debug)
 
-	// Get default storage (localStorage or fallback)
 	const detectStorage = () => {
 		if (typeof window === 'undefined') {
 			log.info('Running in SSR environment. No storage available.')
@@ -40,12 +39,15 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			clientOnly = false,
 			include = null,
 			exclude = null,
-		} = { ...pluginOptions, ...(typeof storeOptions === 'object' && storeOptions) }
+		} = { ...{ ...pluginOptions, key: undefined }, ...(typeof storeOptions === 'object' && storeOptions) }
 
 		if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined'))
 			return
 
-		// Load persisted state
+		// Combine global prefix with store-specific key
+		const getPrefixedKey = (storeKey: string) =>
+			pluginOptions.key ? `${pluginOptions.key}:${storeKey}` : storeKey
+
 		const loadState = () => {
 			const getItem = (key: string) => queueTask(queues, key, async () => await storage.getItem(key))
 			getItem(typeof key === 'string' ? key : context.store.$id).then((savedValue) => {
@@ -75,7 +77,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const filteredState = applyStateFilter(state, include, exclude)
 			const setItem = (key: string, value: string) => {
 				queueTask(queues, key, async () => {
-					await storage.setItem(key, value)
+					await storage.setItem(getPrefixedKey(key), value)
 				})
 			}
 

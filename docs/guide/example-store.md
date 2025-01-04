@@ -1,7 +1,9 @@
-# Basic Store Example
+# Introduction
 
+This document provides examples of how to configure state persistence in your Pinia stores. For a detailed breakdown of available configuration options, refer to the [`PersistOptions`](../api/persist-options.md) documentation.
+
+## Basic Store Example
 Here is an example of how to configure persistence in a Pinia store:
-
 ```ts twoslash
 // @noErrors
 import { defineStore } from 'pinia'
@@ -30,7 +32,7 @@ export const useUserStore = defineStore('user', {
 })
 ```
 
-# Advanced Store Example
+## Advanced Store Example
 
 ```ts twoslash
 // @noErrors
@@ -71,23 +73,23 @@ export const useAuthStore = defineStore('auth', {
 ## Key Points
 
 1. **Best Practices**:
-    - Avoid persisting sensitive data (e.g., passwords, tokens) or transient properties.
-    - Use `include` for minimal persistence and `exclude` to remove sensitive or transient data.
-    - Leverage `debug` mode during development for tracking, but disable it in production for optimal performance.
+   - Avoid persisting sensitive data (e.g., passwords, tokens) or transient properties.
+   - Use `include` for minimal persistence and `exclude` to remove sensitive or transient data.
+   - Leverage `debug` mode during development for tracking, but disable it in production for optimal performance.
 
 2. **Key Management**:
-    - Use the `key` option as a string for a single key or as an object to specify unique keys for different parts of the state.
+   - Use the `key` option as a string for a single key or as an object to specify unique keys for different parts of the state.
 
 3. **Storage Options**:
-    - **Synchronous**: Use `localStorage`, `sessionStorage`, or cookies for small and fast storage needs.
-    - **Asynchronous**: Use `localForage` or other async solutions for larger datasets or non-blocking behavior.
-    - **Cloud-Based**: For distributed or server-side persistence, consider remote APIs or custom solutions.
+   - **Synchronous**: Use `localStorage`, `sessionStorage`, or cookies for small and fast storage needs.
+   - **Asynchronous**: Use `localForage` or other async solutions for larger datasets or non-blocking behavior.
+   - **Cloud-Based**: For distributed or server-side persistence, consider remote APIs or custom solutions.
 
 4. **Serialization/Deserialization**:
-    - Transform and compress state as needed using libraries like `zipson` or custom serializers.
+   - Transform and compress state as needed using libraries like `zipson` or custom serializers.
 
 5. **Include/Exclude**:
-    - Control persistence granularity using `include` and `exclude`, supporting dot notation for nested properties.
+   - Control persistence granularity using `include` and `exclude`, supporting dot notation for nested properties.
 
 6. **Filter**:
    - Use the `filter` function to apply custom logic for deciding whether specific mutations or states should be persisted.
