@@ -6,10 +6,10 @@
     - **Synchronous Storage**:
         - `localStorage`
         - `sessionStorage`
-        - Cookies
+        - `cookies`
     - **Asynchronous Storage**:
         - `indexedDB` (via libraries like `localForage`)
-        - Cloud-based storage solutions (via custom implementations)
+        - `cloud-based storage solutions` (via custom implementations)
     - **Custom Storage**: Easily extend the plugin to work with any storage mechanism by implementing a `getItem`, `setItem`, and `removeItem` interface.
 
 - **Customizable Persistence**:
@@ -35,17 +35,20 @@
 
 ### Supported Storage Types
 
-| Storage Type          | Synchronous | Asynchronous | Customizable |
-|-----------------------|-------------|--------------|--------------|
-| `localStorage`        | ✅           | ❌            | ❌            |
-| `sessionStorage`      | ✅           | ❌            | ❌            |
-| Cookies               | ✅           | ❌            | ✅            |
-| `indexedDB`           | ❌           | ✅            | ✅            |
-| `localForage`         | ❌           | ✅            | ✅            |
-| Cloud-based storages  | ❌           | ✅            | ✅            |
-| Custom storage        | ✅/❌        | ✅/❌         | ✅            |
+| Storage Type         | Synchronous | Asynchronous | Customizable |
+|----------------------|-------------|--------------|--------------|
+| `localStorage`       | ✅           | ❌            | ❌            |
+| `sessionStorage`     | ✅           | ❌            | ❌            |
+| Cookies              | ✅           | ❌            | ✅            |
+| `indexedDB`          | ❌           | ✅            | ✅            |
+| `localForage`        | ❌           | ✅            | ✅            |
+| Cloud-based storages | ❌           | ✅            | ✅            |
+| Custom storage       | ✅/❌         | ✅/❌          | ✅            |
 
-To add custom storage, implement the following interface:
+<details>
+<summary>To add custom storage (Click to expand)</summary>
+
+Implement the following interface to use custom storage:
 ```typescript
 interface Storage {
 	getItem: (key: string) => string | Promise<string | null> | null
@@ -53,3 +56,4 @@ interface Storage {
 	removeItem: (key: string) => void | Promise<void>
 }
 ```
+</details>
