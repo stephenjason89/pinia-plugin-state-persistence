@@ -17,26 +17,14 @@
 | `serialize`   | `(state) => string`                 | Custom function for serializing the state.                                                                                                                                                                                                                                                                                                           |
 | `deserialize` | `(state: string) => Partial<S>`     | Custom function for deserializing the state.                                                                                                                                                                                                                                                                                                         |
 
-### Example Usage
-
-```javascript
-createStatePersistence({
-	key: 'example-store',
-	debug: true,
-	overwrite: true,
-	clientOnly: true, // Since `sessionStorage` is null in SSR environments, this flag doesn't have an effect here. However, if the storage mechanism supports both client and server environments, this ensures the persistence runs on the client only.
-	storage: window?.sessionStorage, // Nullish coalescing ensures no errors in SSR environments where 'window' is undefined.
-	filter: mutation => mutation.type !== 'increment',
-	serialize: JSON.stringify,
-	deserialize: JSON.parse,
-})
-```
-
 ### Default Values
 
 If no options are provided, the plugin uses the following defaults:
 
-```javascript
+```ts twoslash
+// @noErrors
+import { createStatePersistence } from 'pinia-plugin-state-persistence'
+
 createStatePersistence({
 	key: storeId, // Defaults to the store's ID
 	debug: false, // Debugging disabled
