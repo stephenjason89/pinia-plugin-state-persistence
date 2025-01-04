@@ -16,6 +16,8 @@
 | `filter`      | `(mutation, state) => boolean`      | Filters which mutations trigger persistence.                                                                                                                                                                                                                                                                                                         |
 | `serialize`   | `(state) => string`                 | Custom function for serializing the state.                                                                                                                                                                                                                                                                                                           |
 | `deserialize` | `(state: string) => Partial<S>`     | Custom function for deserializing the state.                                                                                                                                                                                                                                                                                                         |
+| `include`     | `string \| string[]`                | Specifies a store property or an array of properties to include for persistence. Dot notation is supported to target nested properties (e.g., `"user.settings"`). If provided, only these properties will be persisted.                                                                                                                                                                    |
+| `exclude`     | `string \| string[]`                | Specifies a store property or an array of properties to exclude from persistence. Dot notation is supported to target nested properties (e.g., `"user.password"`). If provided, all properties except these will be persisted.                                                                                                                                                            |
 
 ### Default Values
 
@@ -32,5 +34,7 @@ createStatePersistence({
 	storage: localStorage, // Use localStorage by default
 	serialize: JSON.stringify, // Default serialization
 	deserialize: JSON.parse, // Default deserialization
+	include: undefined, // Include all properties by default
+	exclude: undefined, // Exclude no properties by default
 })
 ```
