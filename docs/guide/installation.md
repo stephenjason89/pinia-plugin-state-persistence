@@ -66,6 +66,41 @@ app.use(pinia)
 app.mount('#app')
 ```
 
+## Usage
+
+Enable the new `persist` option by setting it to `true` when defining your store.
+
+::: code-group
+
+```ts{11} [setup syntax]
+import { defineStore } from 'pinia'
+import { ref } from 'vue'
+
+export const useStore = defineStore(
+  'example',
+  () => {
+    const exampleState = ref('example value')
+    return { someState }
+  },
+  {
+    persist: true,
+  },
+)
+```
+
+```ts{9} [option syntax]
+import { defineStore } from 'pinia'
+
+export const useStore = defineStore('example', {
+  state: () => {
+    return {
+      exampleState: 'example value',
+    }
+  },
+  persist: true,
+})
+```
+
 ### Troubleshooting:
 - Ensure the `pinia-plugin-state-persistence` package is installed.
 - Verify that `pinia` is properly installed and initialized in your project.
