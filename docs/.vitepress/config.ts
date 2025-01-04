@@ -65,7 +65,13 @@ export default defineConfig({
 			{ icon: 'github', link: 'https://github.com/stephenjason89/pinia-plugin-state-persistence' },
 		],
 		search: { provider: 'local' },
+		editLink: {
+			text: 'Suggest changes to this page',
+			pattern: 'https://github.com/stephenjason89/pinia-plugin-state-persistence/edit/main/docs/:path',
+		},
+		lastUpdatedText: 'Last updated',
 	},
+	lastUpdated: true,
 	vite: {
 		plugins: [
 			groupIconVitePlugin(),
