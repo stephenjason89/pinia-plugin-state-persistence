@@ -8,7 +8,7 @@
         - `sessionStorage`
         - Cookies
     - **Asynchronous Storage**:
-        - `indexedDB` (via libraries like `localforage`)
+        - `indexedDB` (via libraries like `localForage`)
         - Cloud-based storage solutions (via custom implementations)
     - **Custom Storage**: Easily extend the plugin to work with any storage mechanism by implementing a `getItem`, `setItem`, and `removeItem` interface.
 
@@ -41,7 +41,7 @@
 | `sessionStorage`      | ✅           | ❌            | ❌            |
 | Cookies               | ✅           | ❌            | ✅            |
 | `indexedDB`           | ❌           | ✅            | ✅            |
-| `localforage`         | ❌           | ✅            | ✅            |
+| `localForage`         | ❌           | ✅            | ✅            |
 | Cloud-based storages  | ❌           | ✅            | ✅            |
 | Custom storage        | ✅/❌        | ✅/❌         | ✅            |
 

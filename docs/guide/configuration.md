@@ -9,7 +9,7 @@ The `pinia-plugin-state-persistence` accepts a configuration object with the fol
 | `key`           | `string`                            | Key used to store data in storage. Defaults to the store's ID.                                                                     |
 | `debug`         | `boolean`                          | Enables logging for debugging purposes. Defaults to `false`.                                                                       |
 | `overwrite`     | `boolean`                          | Whether to overwrite the store state on $restore. Defaults to `false`.                                                             |
-| `storage`       | `Storage \| AsyncStorage`            | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
+| `storage`       | `Storage \| AsyncStorage`            | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localForage`). |
 | `filter`        | `(mutation, state) => boolean`     | Filters which mutations trigger persistence.                                                                                       |
 | `serialize`     | `(state) => string`                | Custom function for serializing the state.                                                                                         |
 | `deserialize`   | `(state: string) => Partial<S>`    | Custom function for deserializing the state.                                                                                       |
@@ -20,13 +20,13 @@ Here is an example of how to configure the plugin:
 
 ```ts twoslash
 // @noErrors
-import localforage from 'localforage'
+import localForage from 'localforage'
 import { createStatePersistence } from 'pinia-plugin-state-persistence'
 import { parse, stringify } from 'zipson'
 
 createStatePersistence({
 	debug: true,
-	storage: localforage, // Use localforage for persistence
+	storage: localForage, // Use localForage for persistence
 	filter: mutation => mutation.type !== 'increment', // Exclude certain mutations
 	serialize: stringify, // Custom serialization
 	deserialize: parse, // Custom deserialization
@@ -36,7 +36,7 @@ createStatePersistence({
 ### Key Points
 
 - **Debugging**: Enable `debug` during development to track persistence actions.
-- **Storage**: Use any storage implementation that supports getItem, setItem, and removeItem. This includes built-in options like localStorage, sessionStorage, cookies, or custom implementations tailored to your application's needs, as well as asynchronous solutions like localforage.
+- **Storage**: Use any storage implementation that supports getItem, setItem, and removeItem. This includes built-in options like localStorage, sessionStorage, cookies, or custom implementations tailored to your application's needs, as well as asynchronous solutions like localForage.
 - **Filters**: Use the `filter` option to fine-tune which mutations should trigger persistence.
 - **Serialization/Deserialization**: Customize the state transformation process if needed.
 
@@ -62,7 +62,7 @@ createStatePersistence({
 
 1. **Storage Type**:
     - Use `localStorage` for simple, synchronous storage needs.
-    - Use `localforage` or other async storage options for larger or non-blocking storage.
+    - Use `localForage` or other async storage options for larger or non-blocking storage.
 
 2. **Debugging**:
     - Enable `debug` mode during development but disable it in production for optimal performance.

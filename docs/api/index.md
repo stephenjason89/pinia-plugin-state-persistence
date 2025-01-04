@@ -65,6 +65,6 @@ pinia.use(createStatePersistence({
 
 - For a detailed list of configuration options, refer to [PersistOptions](./persist-options).
 - Always ensure the `key` in the `options` object is unique to avoid conflicts across stores.
-- The plugin supports both synchronous (`localStorage`) and asynchronous (`localforage`) storage options.
+- The plugin supports both synchronous (`localStorage`) and asynchronous (`localForage`) storage options.
 
 For more details on using the plugin, see the [Guide](../guide/).

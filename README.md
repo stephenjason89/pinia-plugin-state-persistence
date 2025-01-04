@@ -19,7 +19,7 @@ This project is a Pinia plugin designed to provide state persistence capabilitie
 
 ## Features
 
-- **Universal Storage Support**: Works with both synchronous and asynchronous storage mechanisms, including `localStorage` and libraries like `localforage`.
+- **Universal Storage Support**: Works with both synchronous and asynchronous storage mechanisms, including `localStorage`, `cookies`, and libraries like `localForage` or even custom `remote APIs`.
 - **Customizable Persistence**: Configure key names, mutation filters, and serialization/deserialization methods.
 - **Debugging Support**: Includes a built-in logger to track plugin operations.
 - **State Overwriting**: Optionally overwrite the store state during initialization.
@@ -28,8 +28,8 @@ This project is a Pinia plugin designed to provide state persistence capabilitie
 ## Why Choose This Plugin?
 
 - **Zero Dependencies**: This plugin is lightweight and has no external dependencies (other than Pinia itself), ensuring minimal impact on your application's bundle size.
-- **Compact Size**: The bundle's unpacked size is just **15.3 kB**, with a minified gzip size of only **1 kB**, making it highly efficient for production use.
-- **Async Storage Support**: Unlike other plugins, this plugin natively supports asynchronous storage mechanisms such as `localforage`, making it ideal for modern applications.
+- **Compact Size**: The bundle's minified gzip size is only **1 kB**, making it highly efficient for production use.
+- **Async Storage Support**: Unlike other plugins, this plugin natively supports asynchronous storage mechanisms such as `localForage`, making it ideal for modern applications.
 - **Queueing Mechanism**: Introduces a queueing mechanism to eliminate race condition issues during state persistence.
 - **Enhanced Flexibility**: Offers advanced configuration options, including custom merge strategies, state filters, and serialization methods, ensuring it adapts to diverse use cases.
 - **Reliable State Management**: Resolves common issues with state persistence in both client-side and SSR setups, providing a smoother developer experience.
@@ -55,7 +55,7 @@ This project is a Pinia plugin designed to provide state persistence capabilitie
 
 ```javascript
 import { destr } from 'destr'
-import localforage from 'localforage'
+import localForage from 'localforage'
 import { createPinia } from 'pinia'
 import { createStatePersistence } from 'pinia-plugin-state-persistence'
 
@@ -64,7 +64,7 @@ const pinia = createPinia()
 pinia.use(createStatePersistence({
 	key: 'my-app',
 	debug: true,
-	storage: localforage, // By default, `localStorage` is used if no storage option is specified
+	storage: localForage, // By default, `localStorage` is used if no storage option is specified
 	clientOnly: true, // Ensures storage operations are restricted to the client-side, preventing access during SSR.
 	deserialize: destr, // By default, `JSON.parse` is used if not specified
 }))
@@ -104,16 +104,16 @@ export default defineNuxtPlugin((nuxtApp) => {
 
 The plugin accepts a `PersistOptions` object with the following properties:
 
-| Property      | Type                            | Description                                                                                                                        |
-|---------------|---------------------------------|------------------------------------------------------------------------------------------------------------------------------------|
-| `key`         | `string \| Record<keyof S, string>` | Key/s used to store data in storage. Defaults to the store's ID.                                                                   |
-| `debug`       | `boolean`                       | Enables logging for debugging purposes. Defaults to `false`.                                                                       |
-| `overwrite`   | `boolean`                       | Whether to overwrite the store state on initialization. Defaults to `false`.                                                       |
-| `clientOnly`  | `boolean`                       | Determines if storage operations should be restricted to the client environment only. Defaults to false.                           |
-| `storage`     | `Storage \| AsyncStorage`       | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localforage`). |
-| `filter`      | `(mutation, state) => boolean`  | Filters which mutations trigger persistence.                                                                                       |
-| `serialize`   | `(state) => string`             | Custom function for serializing the state.                                                                                         |
-| `deserialize` | `(state: string) => Partial<S>` | Custom function for deserializing the state.                                                                                       |
+| Property      | Type                                | Description                                                                                                                                                                                                                                                                                                                                          |
+|---------------|-------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `key`         | `string \| Record<keyof S, string>` | Key/s used to store data in storage. Defaults to the store's ID.                                                                                                                                                                                                                                                                                     |
+| `debug`       | `boolean`                           | Enables logging for debugging purposes. Defaults to `false`.                                                                                                                                                                                                                                                                                         |
+| `overwrite`   | `boolean`                           | When true, replaces the entire store state with the persisted state during [$restore](/guide/advance-usage.md#restore). For [object keys](/guide/advance-usage.md#object-key-persistence), unmapped properties are replaced, and mapped properties are patched individually, effectively acting as an overwrite for those keys. Defaults to `false`. |
+| `clientOnly`  | `boolean`                           | Determines if storage operations should be restricted to the client environment only. Defaults to false.                                                                                                                                                                                                                                             |
+| `storage`     | `Storage \| AsyncStorage`           | Storage mechanism for persisting data. Supports synchronous options like `localStorage` and `cookies`, asynchronous options such as `localForage`, or fully custom storage implementations (e.g., fetching from a `remote API`).                                                                                                                     |
+| `filter`      | `(mutation, state) => boolean`      | Filters which mutations trigger persistence.                                                                                                                                                                                                                                                                                                         |
+| `serialize`   | `(state) => string`                 | Custom function for serializing the state.                                                                                                                                                                                                                                                                                                           |
+| `deserialize` | `(state: string) => Partial<S>`     | Custom function for deserializing the state.                                                                                                                                                                                                                                                                                                         |
 
 ### Example Store
 

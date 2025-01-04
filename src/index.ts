@@ -83,7 +83,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				setItem(key, serialize(filteredState))
 			}
 			else {
-				console.log(context.store.$id, (getObjectDiff(filteredState, key)))
 				setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
 				for (const [stateKey, storageKey] of Object.entries(key)) {
 					if (filteredState[stateKey] !== undefined) {
