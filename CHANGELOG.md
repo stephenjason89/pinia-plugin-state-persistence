@@ -1,3 +1,19 @@
+## [1.4.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.2...v1.4.0) (2025-01-04)
+
+### 🚀 Features
+
+* add support for key prefix in global options ([888d429](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/888d429f2fb97bfad3f94022940afcee0daaf28f))
+
+### 📚 Documentation
+
+* add minimal usage example to installation.md ([b4a6a24](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b4a6a24db07936d8f5f87d091d4e21f5c67bdc87))
+* enhance storage examples and overwrite behavior explanation ([3a476ef](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a476ef87f7d36858caf20abc7f1a029c0b54fd5))
+* improved usage examples and reorganize configuration sections ([55028b4](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/55028b453d35b3a8ad5e8a4b75126a3e114fb14e))
+* make custom storage implementation collapsible in Features.md ([ba2d3ac](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/ba2d3ac3374842db3e32d4a52a4845a93b48e744))
+* move example stores to example-store.md and enhance content ([c6c30c6](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c6c30c622d3d382b96f46447c68f9753bbe87d79))
+* streamline api documentation ([58453eb](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/58453ebb6080dd9ad1678e9f7633e49c9ce3cae4))
+* streamline README to point to documentation site ([c4388b3](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c4388b3534bfef2a1bc52c7e91ffe4e20200824c))
+
 ## [1.3.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.1...v1.3.2) (2025-01-03)
 
 ### 🐛 Bug Fixes
