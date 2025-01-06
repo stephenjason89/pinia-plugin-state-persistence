@@ -1,3 +1,13 @@
+## [1.5.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.4.0...v1.5.0) (2025-01-06)
+
+### 🚀 Features
+
+* make $restore and $persist awaitable with improved async handling ([d47ff46](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/d47ff4644f8628973b837a7cf11b8ab939575691))
+
+### 📚 Documentation
+
+* add edit link and last updated metadata to VitePress ([fb14d1a](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/fb14d1a5dd7a0fac6234efa2627a4e892d10ff81))
+
 ## [1.4.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.3.2...v1.4.0) (2025-01-04)
 
 ### 🚀 Features
