@@ -49,7 +49,19 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			pluginOptions.key ? `${pluginOptions.key}:${storeKey}` : storeKey
 
 		const loadState = () => {
-			const getItem = (key: string) => queueTask(queues, key, async () => await storage.getItem(key))
+			const tasks: Promise<void>[] = []
+			const getItem = (key: string) => {
+				const task = queueTask(queues, key, async () => {
+					try {
+						return await storage.getItem(key)
+					}
+					catch (error) {
+						log.error(`Error loading key ${key}: ${error}`)
+					}
+				})
+				tasks.push(task)
+				return task
+			}
 			getItem(typeof key === 'string' ? key : context.store.$id).then((savedValue) => {
 				if (savedValue) {
 					const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
@@ -57,7 +69,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 			})
 			if (typeof key === 'object') {
-				Object.entries(key).map(([stateKey, storageKey]) =>
+				Object.entries(key).forEach(([stateKey, storageKey]) =>
 					getItem(storageKey).then((savedValue) => {
 						if (savedValue) {
 							context.store.$patch({
@@ -67,6 +79,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}),
 				)
 			}
+			return Promise.all(tasks)
 		}
 
 		// Persist state on mutation
@@ -74,11 +87,18 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (!filter(mutation, state))
 				return
 
+			const tasks: Promise<void>[] = []
 			const filteredState = applyStateFilter(state, include, exclude)
 			const setItem = (key: string, value: string) => {
-				queueTask(queues, key, async () => {
-					await storage.setItem(getPrefixedKey(key), value)
+				const task = queueTask(queues, key, async () => {
+					try {
+						await storage.setItem(getPrefixedKey(key), value)
+					}
+					catch (error) {
+						log.error(`Failed to persist state for key "${key}":${error}`)
+					}
 				})
+				tasks.push(task)
 			}
 
 			if (typeof key === 'string') {
@@ -92,6 +112,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 			}
+			return Promise.all(tasks)
 		}
 
 		context.store.$restore = loadState
