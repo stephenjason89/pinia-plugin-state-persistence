@@ -69,3 +69,7 @@ export function getObjectDiff(object1: Record<string, any>, object2: Record<stri
 		Object.entries(object1).filter(([key]) => !(key in object2)),
 	)
 }
+
+export function isPromise(value: any): value is Promise<any> {
+	return value instanceof Promise
+}
