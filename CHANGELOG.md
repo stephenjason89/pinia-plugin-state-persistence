@@ -1,3 +1,14 @@
+## [1.5.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.0...v1.5.1) (2025-01-09)
+
+### ⚡ Performance
+
+* streamline loadState and persistState by eliminating redundant async handling ([#3](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/3)) ([b3207df](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b3207df65ad4c472a77e26c4bac33d9e60772eca))
+
+### 📦 Chores
+
+* add issue and PR templates ([cf5f836](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/cf5f836c4017b229282fdf5f11ff2a4c0952926a))
+* create FUNDING.yml ([6fd1bfc](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/6fd1bfcff85756ed7d44fded50a7a2c5238670fe))
+
 ## [1.5.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.4.0...v1.5.0) (2025-01-06)
 
 ### 🚀 Features
