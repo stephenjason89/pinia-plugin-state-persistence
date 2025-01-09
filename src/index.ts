@@ -1,6 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
-import type { GlobalPersistOptions } from './types.js'
-import { applyStateFilter, createLogger, getObjectDiff, queueTask } from './utils.js'
+import type { GlobalPersistOptions, Storage } from './types.js'
+import { applyStateFilter, createLogger, getObjectDiff, isPromise, queueTask } from './utils.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions?: GlobalPersistOptions<S>,
@@ -9,7 +9,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 	const queues: Record<string, Promise<void>> = {}
 	const log = createLogger(pluginOptions.debug)
 
-	const detectStorage = () => {
+	const detectStorage = (): null | Storage => {
 		if (typeof window === 'undefined') {
 			log.info('Running in SSR environment. No storage available.')
 			return null
@@ -51,35 +51,57 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const loadState = () => {
 			const tasks: Promise<void>[] = []
 			const getItem = (key: string) => {
-				const task = queueTask(queues, key, async () => {
-					try {
-						return await storage.getItem(key)
+				try {
+					const result = storage.getItem(getPrefixedKey(key))
+					if (isPromise(result)) {
+						const task = queueTask(queues, key, async () => await result)
+						tasks.push(task)
+						return task
 					}
-					catch (error) {
-						log.error(`Error loading key ${key}: ${error}`)
+					return result
+				}
+				catch (error) {
+					log.error(`Error loading key ${key}: ${error}`)
+				}
+			}
+
+			const restoreState = (savedValue: any, stateKey?: string): void => {
+				if (!savedValue)
+					return
+
+				const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
+
+				if (stateKey) {
+					context.store.$patch({ [stateKey]: savedState })
+				}
+				else {
+					overwrite
+						? (context.store.$state = savedState)
+						: context.store.$patch(savedState)
+				}
+			}
+
+			const savedValue = getItem(typeof key === 'string' ? key : context.store.$id)
+			if (!isPromise(savedValue)) {
+				restoreState(savedValue)
+			}
+			else {
+				savedValue.then(restoreState)
+			}
+
+			if (typeof key === 'object') {
+				Object.entries(key).forEach(([stateKey, storageKey]) => {
+					const savedValue = getItem(storageKey)
+					if (!isPromise(savedValue)) {
+						restoreState(savedValue, stateKey)
+					}
+					else {
+						savedValue.then(value => restoreState(value, stateKey))
 					}
 				})
-				tasks.push(task)
-				return task
 			}
-			getItem(typeof key === 'string' ? key : context.store.$id).then((savedValue) => {
-				if (savedValue) {
-					const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
-					overwrite ? (context.store.$state = savedState) : context.store.$patch(savedState)
-				}
-			})
-			if (typeof key === 'object') {
-				Object.entries(key).forEach(([stateKey, storageKey]) =>
-					getItem(storageKey).then((savedValue) => {
-						if (savedValue) {
-							context.store.$patch({
-								[stateKey]: typeof savedValue === 'object' ? savedValue : deserialize(savedValue),
-							})
-						}
-					}),
-				)
-			}
-			return Promise.all(tasks)
+
+			return tasks.length ? Promise.all(tasks) : undefined
 		}
 
 		// Persist state on mutation
@@ -90,15 +112,16 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const tasks: Promise<void>[] = []
 			const filteredState = applyStateFilter(state, include, exclude)
 			const setItem = (key: string, value: string) => {
-				const task = queueTask(queues, key, async () => {
-					try {
-						await storage.setItem(getPrefixedKey(key), value)
+				try {
+					const result = storage.setItem(getPrefixedKey(key), value)
+					if (isPromise(result)) {
+						const task = queueTask(queues, key, async () => await result)
+						tasks.push(task)
 					}
-					catch (error) {
-						log.error(`Failed to persist state for key "${key}":${error}`)
-					}
-				})
-				tasks.push(task)
+				}
+				catch (error) {
+					log.error(`Failed to persist state for key "${key}": ${error}`)
+				}
 			}
 
 			if (typeof key === 'string') {
@@ -112,7 +135,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 			}
-			return Promise.all(tasks)
+			return tasks.length ? Promise.all(tasks) : undefined
 		}
 
 		context.store.$restore = loadState
