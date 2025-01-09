@@ -52,7 +52,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const tasks: Promise<void>[] = []
 			const getItem = (key: string) => {
 				try {
-					const result = storage.getItem(key)
+					const result = storage.getItem(getPrefixedKey(key))
 					if (isPromise(result)) {
 						const task = queueTask(queues, key, async () => await result)
 						tasks.push(task)
