@@ -1,3 +1,9 @@
+## [1.5.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.1...v1.5.2) (2025-01-11)
+
+### 🐛 Bug Fixes
+
+* apply overwrite logic to object key persistence ([#4](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/4)) ([cc62594](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/cc625949b771f014baebb33e8320a60ae2cd6da7))
+
 ## [1.5.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.0...v1.5.1) (2025-01-09)
 
 ### ⚡ Performance
