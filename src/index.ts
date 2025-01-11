@@ -72,7 +72,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
 
 				if (stateKey) {
-					context.store.$patch({ [stateKey]: savedState })
+					overwrite
+						? (context.store.$state[stateKey] = savedState)
+						: context.store.$patch(savedState)
 				}
 				else {
 					overwrite
