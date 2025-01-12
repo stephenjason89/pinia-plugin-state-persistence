@@ -107,8 +107,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		}
 
 		// Persist state on mutation
+		let lastPersistedState: S | undefined
 		const persistState = (mutation: any, state: S) => {
-			if (!filter(mutation, state))
+			if (!filter(mutation, state) || lastPersistedState === state)
 				return
 
 			const tasks: Promise<void>[] = []
@@ -137,10 +138,15 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 			}
+			lastPersistedState = state
 			return tasks.length ? Promise.all(tasks) : undefined
 		}
 
-		context.store.$restore = loadState
+		context.store.$restore = () => {
+			loadState()
+			lastPersistedState = undefined
+		}
+
 		context.store.$persist = () =>
 			persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
 
