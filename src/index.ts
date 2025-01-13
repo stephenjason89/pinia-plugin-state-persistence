@@ -48,8 +48,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const getPrefixedKey = (storeKey: string) =>
 			pluginOptions.key ? `${pluginOptions.key}:${storeKey}` : storeKey
 
+		let restoringState: boolean
 		const loadState = () => {
 			const tasks: Promise<void>[] = []
+			let stateToRestore: Record<string, any> = {}
+
 			const getItem = (key: string) => {
 				try {
 					const result = storage.getItem(getPrefixedKey(key))
@@ -65,51 +68,49 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 			}
 
-			const restoreState = (savedValue: any, stateKey?: string): void => {
-				if (!savedValue)
+			const restoreState = (state: Record<string, any>) => {
+				if (!state || Object.keys(state).length === 0)
 					return
-
-				const savedState = typeof savedValue === 'object' ? savedValue : deserialize(savedValue)
-
-				if (stateKey) {
-					overwrite
-						? (context.store.$state[stateKey] = savedState)
-						: context.store.$patch(savedState)
+				restoringState = true
+				if (overwrite) {
+					context.store.$state = state
 				}
 				else {
-					overwrite
-						? (context.store.$state = savedState)
-						: context.store.$patch(savedState)
+					context.store.$patch(state)
 				}
+				restoringState = false
 			}
 
-			const savedValue = getItem(typeof key === 'string' ? key : context.store.$id)
-			if (!isPromise(savedValue)) {
-				restoreState(savedValue)
-			}
-			else {
-				savedValue.then(restoreState)
+			const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
+				const processValue = (value: any) => {
+					if (value) {
+						const deserializedValue = typeof value === 'object' ? value : deserialize(value)
+						stateKey ? (stateToRestore[stateKey] = deserializedValue) : (stateToRestore = deserializedValue)
+					}
+				}
+				const savedValue = getItem(storageKey)
+				isPromise(savedValue) ? savedValue.then(processValue) : processValue(savedValue)
 			}
 
+			resolveAndDeserialize(typeof key === 'string' ? key : context.store.$id)
 			if (typeof key === 'object') {
 				Object.entries(key).forEach(([stateKey, storageKey]) => {
-					const savedValue = getItem(storageKey)
-					if (!isPromise(savedValue)) {
-						restoreState(savedValue, stateKey)
-					}
-					else {
-						savedValue.then(value => restoreState(value, stateKey))
-					}
+					resolveAndDeserialize(storageKey, stateKey)
 				})
 			}
 
-			return tasks.length ? Promise.all(tasks) : undefined
+			if (tasks.length) {
+				return Promise.all(tasks).then(() => {
+					restoreState(stateToRestore)
+				})
+			}
+
+			restoreState(stateToRestore)
 		}
 
 		// Persist state on mutation
-		let lastPersistedState: S | undefined
 		const persistState = (mutation: any, state: S) => {
-			if (!filter(mutation, state) || lastPersistedState === state)
+			if (!filter(mutation, state) || restoringState)
 				return
 
 			const tasks: Promise<void>[] = []
@@ -138,19 +139,14 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 			}
-			lastPersistedState = state
 			return tasks.length ? Promise.all(tasks) : undefined
 		}
 
-		context.store.$restore = () => {
-			loadState()
-			lastPersistedState = undefined
-		}
-
+		context.store.$restore = loadState
 		context.store.$persist = () =>
 			persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
 
 		loadState()
-		context.store.$subscribe(persistState)
+		context.store.$subscribe(persistState, { flush: 'sync' })
 	}
 }
