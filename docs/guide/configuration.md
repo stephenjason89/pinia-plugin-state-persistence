@@ -4,16 +4,17 @@
 
 The `pinia-plugin-state-persistence` accepts a global configuration object passed to `createStatePersistence` with the following properties:
 
-| Property      | Type                            | Description                                                                                                                                                           |
-|---------------|---------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `key`         | `string`                        | Key used as a prefix for all store keys when persisting data. Defaults to the store's ID if not provided at the store level. This is a global configuration property. |                                                                         |
-| `debug`       | `boolean`                       | Enables logging for debugging purposes. Defaults to `false`.                                                                                                          |
-| `overwrite`   | `boolean`                       | Whether to overwrite the store state on $restore. Defaults to `false`.                                                                                                |
-| `clientOnly`  | `boolean`                       | Determines if storage operations should be restricted to the client environment only. Defaults to false.                                                              |
-| `storage`     | `Storage \| AsyncStorage`       | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localForage`).                                    |
-| `filter`      | `(mutation, state) => boolean`  | Filters which mutations trigger persistence.                                                                                                                          |
-| `serialize`   | `(state) => string`             | Custom function for serializing the state.                                                                                                                            |
-| `deserialize` | `(state: string) => Partial<S>` | Custom function for deserializing the state.                                                                                                                          |
+| Property      | Type                            | Description                                                                                                                                                                         |
+|---------------|---------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `key`         | `string`                        | Key used as a prefix for all store keys when persisting data. Defaults to the store's ID if not provided at the store level. This is a global configuration property.               |                                                                         |
+| `debug`       | `boolean`                       | Enables logging for debugging purposes. Defaults to `false`.                                                                                                                        |
+| `overwrite`   | `boolean`                       | Whether to overwrite the store state on $restore. Defaults to `false`.                                                                                                              |
+| `clientOnly`  | `boolean`                       | Determines if storage operations should be restricted to the client environment only. Defaults to false.                                                                            |
+| `storage`     | `Storage \| AsyncStorage`       | Storage mechanism for persisting data. Supports synchronous (e.g., `localStorage`) and asynchronous options (e.g., `localForage`).                                                  |
+| `filter`      | `(mutation, state) => boolean`  | Filters which mutations trigger persistence.                                                                                                                                        |
+| `serialize`   | `(state) => string`             | Custom function for serializing the state.                                                                                                                                          |
+| `deserialize` | `(state: string) => Partial<S>` | Custom function for deserializing the state.                                                                                                                                        |
+| `deepCopy`    | `boolean`                       | Ensure a deep copy of the state by serializing and deserializing. Store the state as an object while avoiding issues with unsupported values like functions or circular references. |
 
 ### Global Configuration Default Behavior
 
@@ -30,6 +31,7 @@ createStatePersistence({
 	storage: localStorage, // Use localStorage by default
 	serialize: JSON.stringify, // Default serialization
 	deserialize: JSON.parse, // Default deserialization
+	deepCopy: false, // Default deepCopy
 })
 ```
 
