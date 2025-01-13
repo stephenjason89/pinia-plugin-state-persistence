@@ -1,3 +1,13 @@
+## [1.7.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.6.0...v1.7.0) (2025-01-13)
+
+### 🚀 Features
+
+* add support for deep-copied object storage with deepCopy option ([#11](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/11)) ([7a61b23](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/7a61b23c2d43dc124c6a0113c69394604006be55))
+
+### 💄 Code Style
+
+* rename restoringState to isRestoringState for improved readability and consistency ([c654e83](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c654e83267364a517ce8dfbe82afee1054a96711))
+
 ## [1.6.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.3...v1.6.0) (2025-01-13)
 
 ### 🚀 Features
