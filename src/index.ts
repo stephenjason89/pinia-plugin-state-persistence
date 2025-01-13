@@ -36,6 +36,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			filter = () => true,
 			serialize = JSON.stringify,
 			deserialize = JSON.parse,
+			deepCopy = false,
 			clientOnly = false,
 			include = null,
 			exclude = null,
@@ -117,7 +118,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const filteredState = applyStateFilter(state, include, exclude)
 			const setItem = (key: string, value: string) => {
 				try {
-					const result = storage.setItem(getPrefixedKey(key), value)
+					const result = storage.setItem(getPrefixedKey(key), deepCopy ? deserialize(value) : value)
 					if (isPromise(result)) {
 						const task = queueTask(queues, key, async () => await result)
 						tasks.push(task)

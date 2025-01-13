@@ -15,6 +15,7 @@
 | `filter`      | `(mutation, state) => boolean`      | Filters which mutations trigger persistence.                                                                                                                                                                                                                                                                        |
 | `serialize`   | `(state) => string`                 | Custom function for serializing the state.                                                                                                                                                                                                                                                                          |
 | `deserialize` | `(state: string) => Partial<S>`     | Custom function for deserializing the state.                                                                                                                                                                                                                                                                        |
+| `deepCopy`    | `boolean`                           | Ensure a deep copy of the state by serializing and deserializing. Store the state as an object while avoiding issues with unsupported values like functions or circular references.                                                                                                                                 |
 | `include`     | `string \| string[]`                | Specifies a store property or an array of properties to include for persistence. Dot notation is supported to target nested properties (e.g., `"user.settings"`). If provided, only these properties will be persisted.                                                                                             |
 | `exclude`     | `string \| string[]`                | Specifies a store property or an array of properties to exclude from persistence. Dot notation is supported to target nested properties (e.g., `"user.password"`). If provided, all properties except these will be persisted.                                                                                      |
 
@@ -36,6 +37,7 @@ export const useStore = defineStore('exampleStore', {
 		storage: localStorage, // Use localStorage by default
 		serialize: JSON.stringify, // Default serialization
 		deserialize: JSON.parse, // Default deserialization
+		deepCopy: false, // Default deepCopy
 		include: undefined, // Include all properties by default
 		exclude: undefined, // Exclude no properties by default
 	},

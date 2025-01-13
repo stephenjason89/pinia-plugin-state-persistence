@@ -17,6 +17,7 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 	filter?: (mutation: any, state: S) => boolean
 	serialize?: (state: Partial<S>) => string
 	deserialize?: (state: string) => Partial<S>
+	deepCopy?: boolean
 	include?: string | string[]
 	exclude?: string | string[]
 }
