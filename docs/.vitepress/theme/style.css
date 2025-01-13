@@ -44,7 +44,6 @@
 .image-container > .VPImage {
     max-width: none;
     width: 100%;
-    filter: drop-shadow(-1px -1px 0px rgba(0, 0, 0, 0.3));
 }
 
 /* Dark Mode */

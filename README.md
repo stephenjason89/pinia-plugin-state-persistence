@@ -1,4 +1,4 @@
-<div align="center" style="filter: drop-shadow(-1px -1px 0px rgba(0, 0, 0, 0.3));">
+<div align="center">
   <img src="docs/public/logo.png" alt="Project Logo" width="300">
 </div>
 <p align="center" style="margin-top: 25px">
