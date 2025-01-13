@@ -1,3 +1,9 @@
+## [1.6.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.3...v1.6.0) (2025-01-13)
+
+### 🚀 Features
+
+* improve code readability, enhance state restoration logic & prevent redundant state persistence during restoration ([#9](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/9)) ([39a8640](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/39a86404078c2219b90ab0ec3b7bdc2793bd0dfb))
+
 ## [1.5.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.5.2...v1.5.3) (2025-01-12)
 
 ### ⚡ Performance
