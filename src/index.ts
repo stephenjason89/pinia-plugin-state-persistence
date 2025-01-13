@@ -48,6 +48,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const getPrefixedKey = (storeKey: string) =>
 			pluginOptions.key ? `${pluginOptions.key}:${storeKey}` : storeKey
 
+		let restoringState: boolean
 		const loadState = () => {
 			const tasks: Promise<void>[] = []
 			let stateToRestore: Record<string, any> = {}
@@ -70,13 +71,14 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const restoreState = (state: Record<string, any>) => {
 				if (!state || Object.keys(state).length === 0)
 					return
-
+				restoringState = true
 				if (overwrite) {
 					context.store.$state = state
 				}
 				else {
 					context.store.$patch(state)
 				}
+				restoringState = false
 			}
 
 			const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
@@ -108,7 +110,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		// Persist state on mutation
 		const persistState = (mutation: any, state: S) => {
-			if (!filter(mutation, state))
+			if (!filter(mutation, state) || restoringState)
 				return
 
 			const tasks: Promise<void>[] = []
