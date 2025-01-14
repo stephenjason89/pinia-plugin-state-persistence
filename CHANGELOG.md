@@ -1,3 +1,9 @@
+## [1.7.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.1...v1.7.2) (2025-01-14)
+
+### 🐛 Bug Fixes
+
+* mark package as side-effect-free for tree-shaking ([470de10](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/470de10c5378f050c542de2d29e72c9257e3f9e1))
+
 ## [1.7.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.0...v1.7.1) (2025-01-14)
 
 ### 🐛 Bug Fixes
