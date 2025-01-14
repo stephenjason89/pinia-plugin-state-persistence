@@ -18,6 +18,7 @@
 		"localforage",
 		"pinia-plugin-persistedstate"
 	],
+	"sideEffects": false,
 	"exports": {
 		".": {
 			"types": "./dist/index.d.ts",
