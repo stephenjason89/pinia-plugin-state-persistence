@@ -1,3 +1,13 @@
+## [1.7.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.0...v1.7.1) (2025-01-14)
+
+### 🐛 Bug Fixes
+
+* ensure package is tree-shakable and compatible with modern tools ([3f8d523](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3f8d52306776bde388d4520611280bc8ceb1be95))
+
+### 📚 Documentation
+
+* added drop-shadow effect to the logo for enhanced visual appeal ([67c6fc9](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/67c6fc9d8672ab04dfd391adc09a53068017eb7d))
+
 ## [1.7.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.6.0...v1.7.0) (2025-01-13)
 
 ### 🚀 Features
