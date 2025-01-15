@@ -1,3 +1,9 @@
+## [1.8.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.0...v1.8.1) (2025-01-15)
+
+### 🐛 Bug Fixes
+
+* **logging:** prevent circular reference error in persistence logs ([e6b64b7](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/e6b64b75c6704f392640be7a8cd3ee938944370b))
+
 ## [1.8.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.2...v1.8.0) (2025-01-15)
 
 ### 🚀 Features
