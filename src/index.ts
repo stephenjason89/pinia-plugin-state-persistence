@@ -3,11 +3,10 @@ import type { GlobalPersistOptions, Storage } from './types.js'
 import { applyStateFilter, createLogger, getObjectDiff, isPromise, queueTask } from './utils.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
-	globalOptions?: GlobalPersistOptions<S>,
+	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
-	const pluginOptions = globalOptions || {}
 	const queues: Record<string, Promise<void>> = {}
-	const log = createLogger(pluginOptions.debug)
+	const log = createLogger(globalOptions.debug)
 
 	const detectStorage = (): null | Storage => {
 		if (typeof window === 'undefined') {
@@ -42,7 +41,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			clientOnly = false,
 			include = null,
 			exclude = null,
-		} = { ...{ ...pluginOptions, key: undefined }, ...(typeof storeOptions === 'object' && storeOptions) }
+		} = { ...{ ...globalOptions, key: undefined }, ...(typeof storeOptions === 'object' && storeOptions) }
 
 		if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined')) {
 			log.warn(`Skipping persistence for ${context.store.$id}: Storage unavailable or client-only restriction applied.`)
@@ -51,7 +50,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		// Combine global prefix with store-specific key
 		const getPrefixedKey = (storeKey: string) =>
-			pluginOptions.key ? `${pluginOptions.key}:${storeKey}` : storeKey
+			globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
 		let isRestoringState: boolean
 		const loadState = () => {
