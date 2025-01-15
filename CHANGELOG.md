@@ -1,3 +1,17 @@
+## [1.8.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.1...v1.8.2) (2025-01-15)
+
+### 🐛 Bug Fixes
+
+* **types:** move debug option to globalOptions only and omit include/exclude ([3a147bf](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a147bfeea89d39fdeaa1092b6be567d76e4c00e))
+
+### 📚 Documentation
+
+* **storeOptions:** remove references to the debug option ([53e5251](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/53e5251e6aaac15f38251a83754436edaba0d225))
+
+### 💄 Code Style
+
+* replace pluginOptions with globalOptions for consistency with docs ([aa94463](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/aa944638c7aeb7beed3ad8a5db8f0e2695ddeaef))
+
 ## [1.8.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.0...v1.8.1) (2025-01-15)
 
 ### 🐛 Bug Fixes
