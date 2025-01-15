@@ -1,3 +1,13 @@
+## [1.8.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.2...v1.8.0) (2025-01-15)
+
+### 🚀 Features
+
+* **logging:** added context-aware log messages for clearer debugging information ([f3af766](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/f3af7660c9d129e24f09e508ea790e40948e24e3))
+
+### 🐛 Bug Fixes
+
+* correct types for $persist and $restore methods ([153e234](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/153e234f51aae0607371de9e184cc737658101cf))
+
 ## [1.7.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.7.1...v1.7.2) (2025-01-14)
 
 ### 🐛 Bug Fixes
