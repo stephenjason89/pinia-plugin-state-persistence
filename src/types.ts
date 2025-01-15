@@ -28,8 +28,8 @@ export interface GlobalPersistOptions<S extends StateTree = StateTree> extends O
 
 declare module 'pinia' {
 	export interface PiniaCustomProperties {
-		$persist: () => void
-		$restore: () => void
+		$persist: () => MaybePromise<void>
+		$restore: () => MaybePromise<void>
 	}
 	// eslint-disable-next-line unused-imports/no-unused-vars
 	export interface DefineStoreOptionsBase<S extends StateTree, Store> {
