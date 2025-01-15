@@ -26,8 +26,10 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 	return (context: PiniaPluginContext) => {
 		const storeOptions = context.options.persist
-		if (!storeOptions)
+		if (!storeOptions) {
+			log.info(`Store ${context.store.$id} does not have persistence options defined. Plugin skipped.`)
 			return
+		}
 
 		const {
 			key = context.store.$id,
@@ -42,8 +44,10 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			exclude = null,
 		} = { ...{ ...pluginOptions, key: undefined }, ...(typeof storeOptions === 'object' && storeOptions) }
 
-		if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined'))
+		if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined')) {
+			log.warn(`Skipping persistence for ${context.store.$id}: Storage unavailable or client-only restriction applied.`)
 			return
+		}
 
 		// Combine global prefix with store-specific key
 		const getPrefixedKey = (storeKey: string) =>
@@ -51,6 +55,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		let isRestoringState: boolean
 		const loadState = () => {
+			log.info(`Initiating state restoration for store: ${context.store.$id}`)
 			const tasks: Promise<void>[] = []
 			let stateToRestore: Record<string, any> = {}
 
@@ -65,18 +70,22 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					return result
 				}
 				catch (error) {
-					log.error(`Error loading key ${key}: ${error}`)
+					log.error(`Failed to retrieve item ${key}: `, error)
 				}
 			}
 
 			const restoreState = (state: Record<string, any>) => {
-				if (!state || Object.keys(state).length === 0)
+				if (!state || Object.keys(state).length === 0) {
+					log.warn(`No state to restore for store: ${context.store.$id}`)
 					return
+				}
 				isRestoringState = true
 				if (overwrite) {
+					log.info(`Overwriting state for store: ${context.store.$id}`)
 					context.store.$state = state
 				}
 				else {
+					log.info(`Merging restored state into store: ${context.store.$id}`)
 					context.store.$patch(state)
 				}
 				isRestoringState = false
@@ -87,6 +96,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					if (value) {
 						const deserializedValue = typeof value === 'object' ? value : deserialize(value)
 						stateKey ? (stateToRestore[stateKey] = deserializedValue) : (stateToRestore = deserializedValue)
+					}
+					else {
+						log.error(`No value found for key: ${storageKey}`)
 					}
 				}
 				const savedValue = getItem(storageKey)
@@ -103,16 +115,20 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (tasks.length) {
 				return Promise.all(tasks).then(() => {
 					restoreState(stateToRestore)
+					log.info(`Async storage state restoration complete for store: ${context.store.$id}`)
 				})
 			}
 
 			restoreState(stateToRestore)
+			log.info(`Synchronous storage state restoration complete for store: ${context.store.$id}`)
 		}
 
 		// Persist state on mutation
 		const persistState = (mutation: any, state: S) => {
-			if (!filter(mutation, state) || isRestoringState)
+			if (!filter(mutation, state) || isRestoringState) {
+				log.info(`Skipping persistence for store: ${context.store.$id}. Mutation: ${JSON.stringify(mutation)}`)
 				return
+			}
 
 			const tasks: Promise<void>[] = []
 			const filteredState = applyStateFilter(state, include, exclude)
@@ -125,7 +141,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 				catch (error) {
-					log.error(`Failed to persist state for key "${key}": ${error}`)
+					log.error(`Failed to persist state for key ${key}: `, error)
 				}
 			}
 
@@ -140,7 +156,12 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 			}
-			return tasks.length ? Promise.all(tasks) : undefined
+			if (tasks.length) {
+				return Promise.all(tasks).then(() => {
+					log.info(`Async state persistence complete for store: ${context.store.$id}`)
+				})
+			}
+			log.info(`Synchronous state persistence complete for store: ${context.store.$id}`)
 		}
 
 		context.store.$restore = loadState
