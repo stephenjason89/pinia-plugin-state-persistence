@@ -70,7 +70,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					return result
 				}
 				catch (error) {
-					log.error(`Failed to retrieve item ${key}: `, error)
+					log.error(`Failed to retrieve item ${key}:`, error)
 				}
 			}
 
@@ -126,7 +126,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		// Persist state on mutation
 		const persistState = (mutation: any, state: S) => {
 			if (!filter(mutation, state) || isRestoringState) {
-				log.info(`Skipping persistence for store: ${context.store.$id}. Mutation: ${JSON.stringify(mutation)}`)
+				log.info(`Skipping persistence for store: ${context.store.$id}. Mutation:`, mutation)
 				return
 			}
 
@@ -141,7 +141,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 				}
 				catch (error) {
-					log.error(`Failed to persist state for key ${key}: `, error)
+					log.error(`Failed to persist state for key ${key}:`, error)
 				}
 			}
 
