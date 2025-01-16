@@ -29,7 +29,6 @@ import { defineStore } from 'pinia'
 export const useStore = defineStore('exampleStore', {
 	persist: {
 		key: 'exampleStore', // Defaults to the store's ID
-		debug: false, // Debugging disabled
 		overwrite: false, // Do not overwrite existing state
 		filter: () => true, // Always allow persistence
 		clientOnly: false, // Run on both server and client

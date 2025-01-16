@@ -7,6 +7,7 @@ To persist state using cookies in a Nuxt application, we recommend using [`cooki
 ```ts twoslash
 // @filename: pinia-persistence.ts
 // @noErrors
+import type { Pinia } from 'pinia'
 import cookies from 'cookie-universal'
 import { createStatePersistence } from 'pinia-plugin-state-persistence'
 
@@ -14,11 +15,11 @@ export default defineNuxtPlugin((nuxtApp) => {
 	const event = nuxtApp.ssrContext?.event // Access server-side request/response
 	const Cookies = cookies(event?.node.req, event?.node.res) // Initialize cookie-universal with SSR context
 
-	nuxtApp.$pinia.use(
+    ;(nuxtApp.$pinia as Pinia).use(
 		createStatePersistence({
 			storage: {
 				getItem: Cookies.get, // Get item from cookies
-				setItem: (key, value) => Cookies.set(key, value), // Set item in cookies
+				setItem: Cookies.set, // Set item in cookies
 				removeItem: Cookies.remove, // Remove item from cookies
 			},
 		}),
