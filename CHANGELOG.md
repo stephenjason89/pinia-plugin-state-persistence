@@ -1,3 +1,13 @@
+## [1.9.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.2...v1.9.0) (2025-01-21)
+
+### 🚀 Features
+
+* **persistence:** add support for multiple storages ([#15](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/15)) ([ebd6423](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/ebd64230abb494e27f30151916fc24e6ef565ef8))
+
+### 📚 Documentation
+
+* update nuxt-integration plugin example ([9617760](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/96177600e65d6006a95cad9c46b9ee919593077f))
+
 ## [1.8.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.1...v1.8.2) (2025-01-15)
 
 ### 🐛 Bug Fixes
