@@ -40,7 +40,7 @@ This is particularly helpful in batch updates or custom save operations that byp
 
 ## Object Key Persistence
 
-The plugin now supports persisting state properties on separate keys when an object is provided for the `key` option. This allows finer control over how state properties are stored.
+The plugin supports persisting state properties on separate keys when an object is provided for the `key` option. This allows finer control over how state properties are stored.
 
 ### Example Configuration
 
@@ -67,6 +67,45 @@ export const useExampleStore = defineStore('example', {
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
+## Multiple Storage Support
+
+The plugin supports persisting state properties to multiple storages by allowing the `persist` option to accept an array of persistence configurations. This enables fine-grained control over where and how state properties are stored.
+
+### Example Configuration
+
+```typescript
+import { defineStore } from 'pinia'
+
+export const useExampleStore = defineStore('example', {
+	state: () => ({
+		userId: 1,
+		token: 'Bearer ...',
+		preferences: { theme: 'dark' },
+	}),
+	persist: [
+		{
+			key: 'user-data',
+			storage: localStorage,
+			include: ['userId', 'token'],
+		},
+		{
+			key: 'preferences-storage',
+			storage: sessionStorage,
+			include: ['preferences'],
+		}
+	],
+})
+```
+
+### Behavior
+
+- Each persistence configuration applies to specific state properties based on the `include` and `exclude` options.
+- Different storages can be used for different pieces of state (e.g., `localStorage` for authentication and `sessionStorage` for UI preferences).
+- When multiple persistence configurations apply to the same state keys, they will be processed in order, and the last configuration may overwrite earlier ones.
+- The `overwrite` option is not allowed as persistence is sequential, with later configurations overriding previous ones.
+
+This feature is particularly useful for applications requiring fine control over storage strategies, such as segregating sensitive authentication data from non-sensitive UI preferences.
+
 ## Conclusion
 
-The `$restore` and `$persist` functions, along with comprehensive plugin configurations like object key persistence, provide flexibility and power for state management. By hooking into Pinia's `$subscribe`, most persistence needs are automatically managed, ensuring seamless state synchronization. These tools offer additional control for edge cases, such as handling manual updates to storage, unique custom scenarios, or persisting individual state properties to specific keys. Leverage these options to build sophisticated applications with reliable persistence and efficient state synchronization.
+The `$restore` and `$persist` functions, along with comprehensive plugin configurations like object key persistence and multiple storage support, provide flexibility and power for state management. By hooking into Pinia's `$subscribe`, most persistence needs are automatically managed, ensuring seamless state synchronization. These tools offer additional control for edge cases, such as handling manual updates to storage, unique custom scenarios, or persisting individual state properties to specific keys and storages. Leverage these options to build sophisticated applications with reliable persistence and efficient state synchronization.

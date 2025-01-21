@@ -33,6 +33,6 @@ declare module 'pinia' {
 	}
 	// eslint-disable-next-line unused-imports/no-unused-vars
 	export interface DefineStoreOptionsBase<S extends StateTree, Store> {
-		persist?: boolean | PersistOptions<S>
+		persist?: boolean | PersistOptions<S> | Omit<PersistOptions<S>, 'overwrite'>[]
 	}
 }
