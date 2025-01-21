@@ -8,6 +8,7 @@
 | Property      | Type                                | Description                                                                                                                                                                                                                                                                                                         |
 |---------------|-------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `key`         | `string \| Record<keyof S, string>` | Key(s) used to store data in storage. Defaults to the store's ID.                                                                                                                                                                                                                                                   |
+| `debug`       | `boolean`                           | Enables logging for debugging purposes. Defaults to `false`.                                                                                                                                                                                                                                                        |
 | `overwrite`   | `boolean`                           | When true, replaces the entire store state with the persisted state during `$restore`. For [object keys](/guide/advance-usage.md#object-key-persistence), unmapped properties are replaced, and mapped properties are patched individually, effectively acting as an overwrite for those keys. Defaults to `false`. |
 | `clientOnly`  | `boolean`                           | Determines if storage operations should be restricted to the client environment only. Defaults to false.                                                                                                                                                                                                            |
 | `storage`     | `Storage \| AsyncStorage`           | Storage mechanism for persisting data. Supports synchronous options like `localStorage` and `cookies`, asynchronous options such as `localForage`, or fully custom storage implementations (e.g., fetching from a `remote API`).                                                                                    |
@@ -29,6 +30,7 @@ import { defineStore } from 'pinia'
 export const useStore = defineStore('exampleStore', {
 	persist: {
 		key: 'exampleStore', // Defaults to the store's ID
+		debug: false, // Debugging disabled
 		overwrite: false, // Do not overwrite existing state
 		filter: () => true, // Always allow persistence
 		clientOnly: false, // Run on both server and client
