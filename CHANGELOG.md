@@ -1,3 +1,13 @@
+## [1.10.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.9.0...v1.10.0) (2025-01-21)
+
+### 🚀 Features
+
+* improve debug messages and add per-store debugging support ([62e8799](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/62e879949660a675a5e28ee24d46cc5827943d2b))
+
+### 📚 Documentation
+
+* update persist-options to include debug option ([783088f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/783088f997609547900a2b9e636c47fb9aabf6b2))
+
 ## [1.9.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.8.2...v1.9.0) (2025-01-21)
 
 ### 🚀 Features

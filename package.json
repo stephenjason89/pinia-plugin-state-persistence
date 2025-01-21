@@ -1,7 +1,7 @@
 {
 	"name": "pinia-plugin-state-persistence",
 	"type": "module",
-	"version": "1.9.0",
+	"version": "1.10.0",
 	"description": "Pinia plugin for universal state persistence across synchronous and asynchronous storage systems, supporting advanced features like path inclusion/exclusion and custom serialization.",
 	"author": "Stephen Jason Wang",
 	"license": "MIT",
