@@ -10,6 +10,7 @@ export interface Storage {
 
 export interface PersistOptions<S extends StateTree = StateTree> {
 	key?: string | Record<keyof S, string> | Record<string, string>
+	debug?: boolean
 	overwrite?: boolean
 	clientOnly?: boolean
 	storage?: Storage
@@ -23,7 +24,6 @@ export interface PersistOptions<S extends StateTree = StateTree> {
 
 export interface GlobalPersistOptions<S extends StateTree = StateTree> extends Omit<PersistOptions<S>, 'key' | 'include' | 'exclude'> {
 	key?: string
-	debug?: boolean
 }
 
 declare module 'pinia' {

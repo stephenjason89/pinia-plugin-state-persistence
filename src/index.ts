@@ -6,41 +6,38 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
 	const queues: Record<string, Promise<void>> = {}
-	const log = createLogger(globalOptions.debug)
 
-	const detectStorage = (): null | Storage => {
+	const detectStorage = (log: ReturnType<typeof createLogger>): Storage | null => {
 		if (typeof window === 'undefined') {
-			log.info('Running in SSR environment. No storage available.')
+			log.info('SSR detected, no storage available.')
 			return null
 		}
 		if (window.localStorage) {
-			log.info('Using localStorage as the default storage.')
+			log.info('Using localStorage.')
 			return window.localStorage
 		}
-		log.error('No valid storage found. PersistPlugin will be disabled.')
+		log.error('No valid storage found, persistence disabled.')
 		return null
 	}
 
 	return (context: PiniaPluginContext) => {
 		const storeOptions = context.options.persist
 		if (!storeOptions) {
-			log.info(`Store ${context.store.$id} does not have persistence options defined. Plugin skipped.`)
 			return
 		}
 
-		// Normalize persist options to an array
 		const persistOptionsArray: Array<PersistOptions<S>> = Array.isArray(storeOptions)
 			? storeOptions
 			: storeOptions === true
 				? [{}]
 				: [storeOptions]
 
-		// Process each persist configuration
 		persistOptionsArray.forEach((options) => {
-			const {
+			let {
 				key = context.store.$id,
+				debug = false,
 				overwrite = false,
-				storage = detectStorage(),
+				storage = null,
 				filter = () => true,
 				serialize = JSON.stringify,
 				deserialize = JSON.parse,
@@ -50,18 +47,21 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				exclude = null,
 			} = { ...{ ...globalOptions, key: undefined }, ...options }
 
+			const log = createLogger(debug)
+
+			if (!storage)
+				storage = detectStorage(log)
+
 			if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined')) {
-				log.warn(`Skipping persistence for ${context.store.$id}: Storage unavailable or client-only restriction applied.`)
+				log.warn(`Skipping ${context.store.$id}, storage unavailable.`)
 				return
 			}
 
-			// Combine global prefix with store-specific key
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
 			let isRestoringState = false
 			const loadState = () => {
-				log.info(`Initiating state restoration for store: ${context.store.$id}`)
 				const tasks: Promise<void>[] = []
 				let stateToRestore: Record<string, any> = {}
 
@@ -76,25 +76,19 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						return result
 					}
 					catch (error) {
-						log.error(`Failed to retrieve item ${key}:`, error)
+						log.error(`Error retrieving ${key}:`, error)
 					}
 				}
 
 				const restoreState = (state: Record<string, any>) => {
 					if (!state || Object.keys(state).length === 0) {
-						log.warn(`No state to restore for store: ${context.store.$id}`)
+						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
 					}
 					isRestoringState = true
-					if (overwrite) {
-						log.info(`Overwriting state for store: ${context.store.$id}`)
-						context.store.$state = state
-					}
-					else {
-						log.info(`Merging restored state into store: ${context.store.$id}`)
-						context.store.$patch(state)
-					}
-					isRestoringState = false
+					log.info(`Restoring state for ${context.store.$id}`)
+					overwrite ? (context.store.$state = state) : context.store.$patch(state)
+					setTimeout(() => (isRestoringState = false))
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
@@ -104,7 +98,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							stateKey ? (stateToRestore[stateKey] = deserializedValue) : (stateToRestore = deserializedValue)
 						}
 						else {
-							log.error(`No value found for key: ${storageKey}`)
+							log.error(`Missing value for key: ${storageKey}`)
 						}
 					}
 					const savedValue = getItem(storageKey)
@@ -113,26 +107,19 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 				resolveAndDeserialize(typeof key === 'string' ? key : context.store.$id)
 				if (typeof key === 'object') {
-					Object.entries(key).forEach(([stateKey, storageKey]) => {
-						resolveAndDeserialize(storageKey, stateKey)
-					})
+					Object.entries(key).forEach(([stateKey, storageKey]) => resolveAndDeserialize(storageKey, stateKey))
 				}
 
 				if (tasks.length) {
-					return Promise.all(tasks).then(() => {
-						restoreState(stateToRestore)
-						log.info(`Async storage state restoration complete for store: ${context.store.$id}`)
-					})
+					return Promise.all(tasks).then(() => restoreState(stateToRestore))
 				}
-
 				restoreState(stateToRestore)
-				log.info(`Synchronous storage state restoration complete for store: ${context.store.$id}`)
 			}
 
-			// Persist state on mutation
 			const persistState = (mutation: any, state: S) => {
 				if (!filter(mutation, state) || isRestoringState) {
-					log.info(`Skipping persistence for store: ${context.store.$id}. Mutation:`, mutation)
+					if (!isRestoringState)
+						log.info(`Skipping persistence for ${context.store.$id}.`)
 					return
 				}
 
@@ -142,12 +129,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					try {
 						const result = storage.setItem(getPrefixedKey(key), deepCopy ? deserialize(value) : value)
 						if (isPromise(result)) {
-							const task = queueTask(queues, key, async () => await result)
-							tasks.push(task)
+							tasks.push(queueTask(queues, key, async () => await result))
 						}
 					}
 					catch (error) {
-						log.error(`Failed to persist state for key ${key}:`, error)
+						log.error(`Failed to persist ${key}:`, error)
 					}
 				}
 
@@ -157,22 +143,21 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				else {
 					setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
 					for (const [stateKey, storageKey] of Object.entries(key)) {
-						if (filteredState[stateKey] !== undefined) {
+						if (filteredState[stateKey] !== undefined)
 							setItem(storageKey, serialize(filteredState[stateKey]))
-						}
 					}
 				}
+
 				if (tasks.length) {
 					return Promise.all(tasks).then(() => {
-						log.info(`Async state persistence complete for store: ${context.store.$id}`)
+						log.info(`State persistence complete for ${context.store.$id}`)
 					})
 				}
-				log.info(`Synchronous state persistence complete for store: ${context.store.$id}`)
+				log.info(`State persistence complete for ${context.store.$id}`)
 			}
 
 			context.store.$restore = loadState
-			context.store.$persist = () =>
-				persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
+			context.store.$persist = () => persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
 
 			loadState()
 			context.store.$subscribe(persistState, { flush: 'sync' })
