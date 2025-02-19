@@ -47,7 +47,7 @@
 		"commitlint": "commitlint --edit"
 	},
 	"peerDependencies": {
-		"pinia": "^2.3.0"
+		"pinia": ">=2.3.0"
 	},
 	"devDependencies": {
 		"@antfu/eslint-config": "^3.12.1",
