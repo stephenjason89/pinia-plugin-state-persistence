@@ -1,3 +1,9 @@
+## [1.10.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.0...v1.10.1) (2025-02-20)
+
+### 🐛 Bug Fixes
+
+* support pinia@3 ([b69d396](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b69d396ec65f31f73ebf44c7075f0d966fe257cf))
+
 ## [1.10.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.9.0...v1.10.0) (2025-01-21)
 
 ### 🚀 Features
