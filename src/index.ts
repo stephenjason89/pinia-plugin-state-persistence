@@ -97,9 +97,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							const deserializedValue = typeof value === 'object' ? value : deserialize(value)
 							stateKey ? (stateToRestore[stateKey] = deserializedValue) : (stateToRestore = deserializedValue)
 						}
-						else {
-							log.error(`Missing value for key: ${storageKey}`)
-						}
 					}
 					const savedValue = getItem(storageKey)
 					isPromise(savedValue) ? savedValue.then(processValue) : processValue(savedValue)
