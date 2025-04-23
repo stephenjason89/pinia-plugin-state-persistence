@@ -1,3 +1,13 @@
+## [1.10.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.1...v1.10.2) (2025-04-23)
+
+### 🐛 Bug Fixes
+
+* remove unnecessary debug message ([7626322](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/762632290e9acb4ffa7cff200bf5b19dda9ba014))
+
+### 📦 Chores
+
+* **lockfile:** migrate from bun.lockb to text-based bun.lock ([62b789d](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/62b789d5cb99b78ac7f0e4b93252dc0e42d3d4b5))
+
 ## [1.10.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.0...v1.10.1) (2025-02-20)
 
 ### 🐛 Bug Fixes
