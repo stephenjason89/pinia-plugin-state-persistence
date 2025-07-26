@@ -60,7 +60,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
-			let isRestoringState = false
 			const loadState = () => {
 				const tasks: Promise<void>[] = []
 				let stateToRestore: Record<string, any> = {}
@@ -85,10 +84,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
 					}
-					isRestoringState = true
 					log.info(`Restoring state for ${context.store.$id}`)
 					overwrite ? (context.store.$state = state) : context.store.$patch(state)
-					setTimeout(() => (isRestoringState = false))
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
@@ -114,9 +111,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			}
 
 			const persistState = (mutation: any, state: S) => {
-				if (!filter(mutation, state) || isRestoringState) {
-					if (!isRestoringState)
-						log.info(`Skipping persistence for ${context.store.$id}.`)
+				if (!filter(mutation, state)) {
+					log.info(`Skipping persistence for ${context.store.$id}.`)
 					return
 				}
 
