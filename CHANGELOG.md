@@ -1,3 +1,9 @@
+## [1.10.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.2...v1.10.3) (2025-07-26)
+
+### 🐛 Bug Fixes
+
+* remove isRestoringState flag causing persist to be skipped in some onBeforeMount cases ([9035b76](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/9035b7667d973d8cf4af9b9f082e00e9970cad42))
+
 ## [1.10.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.1...v1.10.2) (2025-04-23)
 
 ### 🐛 Bug Fixes
