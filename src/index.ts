@@ -60,6 +60,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
+			let restorationPromise: Promise<void> | null = null
+			let persistencePromise: Promise<void> | null = null
+
 			const loadState = () => {
 				const tasks: Promise<void>[] = []
 				let stateToRestore: Record<string, any> = {}
@@ -105,7 +108,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				if (tasks.length) {
-					return Promise.all(tasks).then(() => restoreState(stateToRestore))
+					restorationPromise = Promise.all(tasks).then(() => restoreState(stateToRestore))
+					return restorationPromise
 				}
 				restoreState(stateToRestore)
 			}
@@ -142,15 +146,30 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				if (tasks.length) {
-					return Promise.all(tasks).then(() => {
+					persistencePromise = Promise.all(tasks).then(() => {
 						log.info(`State persistence complete for ${context.store.$id}`)
 					})
+					return persistencePromise
 				}
 				log.info(`State persistence complete for ${context.store.$id}`)
 			}
 
 			context.store.$restore = loadState
 			context.store.$persist = () => persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
+			context.store.$onRestore = (callback?: () => void) => {
+				const promise = restorationPromise || Promise.resolve()
+				if (callback) {
+					promise.then(callback)
+				}
+				return promise
+			}
+			context.store.$onPersist = (callback?: () => void) => {
+				const promise = persistencePromise || Promise.resolve()
+				if (callback) {
+					promise.then(callback)
+				}
+				return promise
+			}
 
 			loadState()
 			context.store.$subscribe(persistState, { flush: 'sync' })

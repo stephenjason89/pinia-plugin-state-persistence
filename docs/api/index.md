@@ -28,9 +28,9 @@ createStatePersistence(globalOptions: GlobalPersistOptions)
 
 ### Parameters
 
-| Parameter        | Type                 | Description                                                                                      |
-|------------------|---------------------|--------------------------------------------------------------------------------------------------|
-| `globalOptions`  | `GlobalConfiguration` | A configuration object to define global persistence behavior (see [Configuration](../guide/configuration)). |
+| Parameter       | Type                  | Description                                                                                                 |
+| --------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `globalOptions` | `GlobalConfiguration` | A configuration object to define global persistence behavior (see [Configuration](../guide/configuration)). |
 
 ### Notes
 
