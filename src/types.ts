@@ -31,6 +31,7 @@ declare module 'pinia' {
 		$persist: () => MaybePromise<void>
 		$restore: () => MaybePromise<void>
 		$onRestore: (callback?: () => void) => Promise<void>
+		$onPersist: (callback?: () => void) => Promise<void>
 	}
 	// eslint-disable-next-line unused-imports/no-unused-vars
 	export interface DefineStoreOptionsBase<S extends StateTree, Store> {

@@ -12,6 +12,8 @@ Welcome to the API Reference for `pinia-plugin-state-persistence`. Below is an o
   - Main function to configure and use the plugin in your Pinia store.
 - [$onRestore](#onrestore)
   - Store method to wait for restoration to complete.
+- [$onPersist](#onpersist)
+  - Store method to wait for persistence to complete.
 
 ## `createStatePersistence`
 
@@ -112,5 +114,75 @@ onMounted(() => {
 - The method waits for any ongoing async restoration, it does NOT trigger a new restoration
 - If restoration has already completed, the method resolves immediately
 - This eliminates the need for unreliable delays when working with async storage
+- Available on all stores that have persistence enabled
+- Supports both Promise-based (async/await) and callback-based usage patterns
+
+## `$onPersist`
+
+### Overview
+
+The `$onPersist` method waits for any ongoing persistence operations to complete. This is particularly useful when working with asynchronous storage (like `localForage` or `indexedDB`) where you need to ensure data has been saved before proceeding with operations that depend on the persistence being complete.
+
+### Syntax
+
+```ts twoslash
+// @noErrors
+// Promise-based (async/await)
+await store.$onPersist();
+
+// Callback-based
+store.$onPersist(() => {
+  // Persistence complete
+});
+```
+
+### Parameters
+
+| Parameter  | Type         | Description                                                      |
+| ---------- | ------------ | ---------------------------------------------------------------- |
+| `callback` | `() => void` | Optional callback function to execute when persistence completes |
+
+### Returns
+
+| Type            | Description                                                |
+| --------------- | ---------------------------------------------------------- |
+| `Promise<void>` | Promise that resolves when persistence operations complete |
+
+### Example Usage
+
+```typescript
+const store = useMyStore();
+
+// Promise-based (async/await)
+const saveData = async () => {
+  store.updateUserData({ name: "John", age: 30 });
+  await store.$onPersist();
+  // Safe to show success or redirect
+  console.log("Data saved!");
+};
+
+// Callback-based
+const saveData = () => {
+  store.updateUserData({ name: "John", age: 30 });
+  store.$onPersist(() => {
+    // Safe to show success or redirect
+    console.log("Data saved!");
+  });
+};
+```
+
+### Use Cases
+
+- **Async Storage**: When using `localForage`, `indexedDB`, or other asynchronous storage solutions
+- **Data Integrity**: Ensuring data is persisted before showing success messages
+- **Navigation**: Waiting for save completion before redirecting users
+- **Loading States**: Coordinating UI feedback with persistence operations
+
+### Notes
+
+- For synchronous storage (like `localStorage`), this method completes immediately since no async persistence is needed
+- The method waits for any ongoing async persistence, it does NOT trigger new persistence
+- If no persistence is currently happening, the method resolves immediately
+- This eliminates race conditions when multiple state changes happen rapidly
 - Available on all stores that have persistence enabled
 - Supports both Promise-based (async/await) and callback-based usage patterns

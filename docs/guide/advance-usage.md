@@ -12,8 +12,6 @@ When using asynchronous storage, the store initialization happens before the dat
 
 ### Example Usage
 
-#### Promise-based approach
-
 ```typescript
 const store = useUserStore();
 
@@ -37,32 +35,30 @@ onMounted(() => {
 });
 ```
 
-#### Callback-based approach
+## `$onPersist`
+
+The `$onPersist` method helps you wait for persistence operations to complete, especially when working with asynchronous storage. This is useful when you need to ensure data has been saved before proceeding with operations like showing success messages or navigating away.
+
+### Example Usage
 
 ```typescript
-import { onMounted } from "vue";
-import { useUserStore } from "@/stores/user";
+const store = useUserStore();
 
-export default {
-  setup() {
-    const userStore = useUserStore();
+// Promise-based (async/await)
+const saveData = async () => {
+  store.updateProfile({ name: "John", email: "john@example.com" });
+  await store.$onPersist();
+  // Safe to show success or navigate
+  showSuccessMessage("Saved!");
+};
 
-    onMounted(() => {
-      // Use callback for restoration completion
-      userStore.$onRestore(() => {
-        // Now it's safe to check persisted data
-        if (!userStore.userData.length) {
-          // No persisted data, fetch from server
-          userStore.fetchUserData();
-        } else {
-          // Use persisted data
-          console.log("Using cached user data:", userStore.userData);
-        }
-      });
-    });
-
-    return { userStore };
-  },
+// Callback-based
+const saveData = () => {
+  store.updateProfile({ name: "John", email: "john@example.com" });
+  store.$onPersist(() => {
+    // Safe to show success or navigate
+    showSuccessMessage("Saved!");
+  });
 };
 ```
 

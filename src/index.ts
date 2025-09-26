@@ -61,6 +61,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
 			let restorationPromise: Promise<void> | null = null
+			let persistencePromise: Promise<void> | null = null
 
 			const loadState = () => {
 				const tasks: Promise<void>[] = []
@@ -145,9 +146,10 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				if (tasks.length) {
-					return Promise.all(tasks).then(() => {
+					persistencePromise = Promise.all(tasks).then(() => {
 						log.info(`State persistence complete for ${context.store.$id}`)
 					})
+					return persistencePromise
 				}
 				log.info(`State persistence complete for ${context.store.$id}`)
 			}
@@ -156,6 +158,13 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			context.store.$persist = () => persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
 			context.store.$onRestore = (callback?: () => void) => {
 				const promise = restorationPromise || Promise.resolve()
+				if (callback) {
+					promise.then(callback)
+				}
+				return promise
+			}
+			context.store.$onPersist = (callback?: () => void) => {
+				const promise = persistencePromise || Promise.resolve()
 				if (callback) {
 					promise.then(callback)
 				}
