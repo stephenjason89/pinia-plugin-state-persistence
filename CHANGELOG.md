@@ -1,3 +1,9 @@
+## [1.11.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.3...v1.11.0) (2025-09-26)
+
+### 🚀 Features
+
+* add $onRestore and $onPersist methods with optional callback support ([#19](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/19)) ([c598748](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c5987485ac5e9adce393e3347dce2cd83bee93a2))
+
 ## [1.10.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.2...v1.10.3) (2025-07-26)
 
 ### 🐛 Bug Fixes
