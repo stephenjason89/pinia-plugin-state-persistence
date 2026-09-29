@@ -1,6 +1,6 @@
 {
 	"repositoryUrl": "git@github.com:stephenjason89/pinia-plugin-state-persistence.git",
-	"branches": ["main", { "name": "develop", "prerelease": "beta" }],
+	"branches": ["main"],
 	"plugins": [
 		"@semantic-release/commit-analyzer",
 		[

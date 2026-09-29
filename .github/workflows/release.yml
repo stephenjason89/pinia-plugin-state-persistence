@@ -4,41 +4,56 @@ on:
   push:
     branches:
       - main
-      - develop
-  schedule:
-    - cron: 0 16 * * 0 # Weekly pre-releases at midnight Monday GMT+8
   workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
   release:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Setup bun
-        uses: oven-sh/setup-bun@v1
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
 
-      - uses: actions/cache@v4
+      - uses: actions/cache@v6
         name: Setup bun cache
         with:
           path: ~/.bun/install/cache
-          key: "${{ runner.os }}-${{ hashFiles('**/bun.lockb') }}"
+          key: "${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}"
           restore-keys: |
-            ${{ runner.os }}-
+            ${{ runner.os }}-bun-
 
       - name: Install Project Dependencies
-        run: bun install
+        run: bun install --frozen-lockfile
+
+      - name: Build
+        run: bun run build
 
       - name: Run semantic-release
-        run: HUSKY=0 bunx semantic-release
+        run: npx semantic-release
         env:
+          HUSKY: 0
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
