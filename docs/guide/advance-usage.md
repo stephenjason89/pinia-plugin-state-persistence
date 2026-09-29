@@ -10,6 +10,8 @@ The `$onRestore` method helps you wait for the initial store restoration to comp
 
 When using asynchronous storage, the store initialization happens before the data has been loaded from storage. This can cause issues in component `onMounted` hooks where you need to check if persisted data exists before making server requests.
 
+If you change a top-level state property before restoration finishes, your change is kept and the stored value for that property is ignored.
+
 ### Example Usage
 
 ```typescript
