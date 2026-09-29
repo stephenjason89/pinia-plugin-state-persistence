@@ -1,11 +1,11 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
-import { applyStateFilter, createLogger, getObjectDiff, isPromise, queueTask } from './utils.js'
+import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, settleAll } from './utils.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
-	const queues: Record<string, Promise<void>> = {}
+	const queues = new WeakMap<Storage, Record<string, Promise<unknown>>>()
 
 	const detectStorage = (log: ReturnType<typeof createLogger>): Storage | null => {
 		if (typeof window === 'undefined') {
@@ -32,6 +32,13 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				? [{}]
 				: [storeOptions]
 
+		const persisters: Array<{
+			loadState: () => Promise<void> | void
+			persistState: (mutation: any, state: S) => Promise<void> | void
+			restoration: () => Promise<void> | null
+			persistence: () => Promise<void> | null
+		}> = []
+
 		persistOptionsArray.forEach((options) => {
 			let {
 				key = context.store.$id,
@@ -57,6 +64,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				return
 			}
 
+			const activeStorage = storage
+			let storageQueues = queues.get(activeStorage)
+			if (!storageQueues)
+				queues.set(activeStorage, storageQueues = {})
+
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
@@ -65,22 +77,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 			const loadState = () => {
 				const tasks: Promise<void>[] = []
-				let stateToRestore: Record<string, any> = {}
-
-				const getItem = (key: string) => {
-					try {
-						const result = storage.getItem(getPrefixedKey(key))
-						if (isPromise(result)) {
-							const task = queueTask(queues, key, async () => await result)
-							tasks.push(task)
-							return task
-						}
-						return result
-					}
-					catch (error) {
-						log.error(`Error retrieving ${key}:`, error)
-					}
-				}
+				let storedState: Record<string, any> = {}
+				const storedValues: Record<string, any> = {}
 
 				const restoreState = (state: Record<string, any>) => {
 					if (!state || Object.keys(state).length === 0) {
@@ -92,14 +90,30 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
-					const processValue = (value: any) => {
-						if (value) {
-							const deserializedValue = typeof value === 'object' ? value : deserialize(value)
-							stateKey ? (stateToRestore[stateKey] = deserializedValue) : (stateToRestore = deserializedValue)
+					const processValue = (value: unknown) => {
+						if (value === null || value === undefined)
+							return
+						try {
+							const deserializedValue = typeof value === 'object' || (deepCopy && stateKey) ? value : deserialize(value as string)
+							stateKey ? (storedValues[stateKey] = deserializedValue) : (storedState = deserializedValue as Record<string, any>)
+						}
+						catch (error) {
+							log.error(`Error restoring ${storageKey}:`, error)
 						}
 					}
-					const savedValue = getItem(storageKey)
-					isPromise(savedValue) ? savedValue.then(processValue) : processValue(savedValue)
+
+					const prefixedKey = getPrefixedKey(storageKey)
+					try {
+						const savedValue = enqueue(storageQueues, prefixedKey, () => activeStorage.getItem(prefixedKey))
+						if (isPromise(savedValue)) {
+							tasks.push(savedValue.then(processValue, error => console.error(`Error processing queue for key '${storageKey}':`, error)))
+							return
+						}
+						processValue(savedValue)
+					}
+					catch (error) {
+						log.error(`Error retrieving ${storageKey}:`, error)
+					}
 				}
 
 				resolveAndDeserialize(typeof key === 'string' ? key : context.store.$id)
@@ -107,11 +121,23 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					Object.entries(key).forEach(([stateKey, storageKey]) => resolveAndDeserialize(storageKey, stateKey))
 				}
 
-				if (tasks.length) {
-					restorationPromise = Promise.all(tasks).then(() => restoreState(stateToRestore))
-					return restorationPromise
+				if (!tasks.length) {
+					restoreState({ ...storedState, ...storedValues })
+					return
 				}
-				restoreState(stateToRestore)
+
+				const stateBeforeRestore = Object.fromEntries(
+					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
+				)
+				restorationPromise = Promise.all(tasks).then(() => {
+					const state: Record<string, any> = { ...storedState, ...storedValues }
+					for (const stateKey of Object.keys(state)) {
+						if (stateKey in stateBeforeRestore && fingerprint(context.store.$state[stateKey]) !== stateBeforeRestore[stateKey])
+							delete state[stateKey]
+					}
+					restoreState(state)
+				})
+				return restorationPromise
 			}
 
 			const persistState = (mutation: any, state: S) => {
@@ -122,15 +148,17 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 				const tasks: Promise<void>[] = []
 				const filteredState = applyStateFilter(state, include, exclude)
-				const setItem = (key: string, value: string) => {
+				const setItem = (storageKey: string, value: string) => {
+					const prefixedKey = getPrefixedKey(storageKey)
 					try {
-						const result = storage.setItem(getPrefixedKey(key), deepCopy ? deserialize(value) : value)
+						const storedValue = deepCopy ? deserialize(value) : value
+						const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
 						if (isPromise(result)) {
-							tasks.push(queueTask(queues, key, async () => await result))
+							tasks.push(result.then(() => {}, error => console.error(`Error processing queue for key '${storageKey}':`, error)))
 						}
 					}
 					catch (error) {
-						log.error(`Failed to persist ${key}:`, error)
+						log.error(`Failed to persist ${storageKey}:`, error)
 					}
 				}
 
@@ -154,25 +182,35 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				log.info(`State persistence complete for ${context.store.$id}`)
 			}
 
-			context.store.$restore = loadState
-			context.store.$persist = () => persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state)
-			context.store.$onRestore = (callback?: () => void) => {
-				const promise = restorationPromise || Promise.resolve()
-				if (callback) {
-					promise.then(callback)
-				}
-				return promise
-			}
-			context.store.$onPersist = (callback?: () => void) => {
-				const promise = persistencePromise || Promise.resolve()
-				if (callback) {
-					promise.then(callback)
-				}
-				return promise
-			}
+			persisters.push({
+				loadState,
+				persistState,
+				restoration: () => restorationPromise,
+				persistence: () => persistencePromise,
+			})
+		})
 
-			loadState()
-			context.store.$subscribe(persistState, { flush: 'sync' })
+		if (!persisters.length)
+			return
+
+		const whenSettled = (promises: Array<Promise<void> | null>, callback?: () => void) => {
+			const promise = Promise.all(promises).then(() => {})
+			if (callback) {
+				promise.then(callback)
+			}
+			return promise
+		}
+
+		context.store.$restore = () => settleAll(persisters.map(persister => persister.loadState()))
+		context.store.$persist = () => settleAll(persisters.map(persister =>
+			persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
+		))
+		context.store.$onRestore = (callback?: () => void) => whenSettled(persisters.map(persister => persister.restoration()), callback)
+		context.store.$onPersist = (callback?: () => void) => whenSettled(persisters.map(persister => persister.persistence()), callback)
+
+		persisters.forEach((persister) => {
+			persister.loadState()
+			context.store.$subscribe(persister.persistState, { flush: 'sync' })
 		})
 	}
 }

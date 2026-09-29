@@ -46,22 +46,33 @@ export function applyStateFilter(state: Record<string, any>,	include: string | s
 
 	excludeArray?.forEach((path) => {
 		const keys = path.split('.')
-		const parent = keys
-			.slice(0, -1)
-			.reduce((acc: Record<string, any> | undefined, key) => acc?.[key], result)
-		if (parent)
-			delete parent[keys.at(-1)!]
+		const lastKey = keys.pop()!
+		let parent: Record<string, any> = result
+		for (const key of keys) {
+			const child: unknown = parent[key]
+			if (!child || typeof child !== 'object')
+				return
+			parent = parent[key] = Array.isArray(child) ? [...child] : { ...child }
+		}
+		delete parent[lastKey]
 	})
 
 	return result
 }
 
-// Queue processing for async storage
-export function queueTask(queues: Record<string, Promise<any>>, key: string, task: () => Promise<any>) {
-	if (!queues[key])
-		queues[key] = Promise.resolve()
-	queues[key] = queues[key].then(task).catch(error => console.error(`Error processing queue for key '${key}':`, error))
-	return queues[key]
+// Run storage operations for the same key one at a time, starting each only after the previous one settles
+export function enqueue<T>(queues: Record<string, Promise<unknown>>, key: string, operation: () => T | Promise<T>): T | Promise<T> {
+	const pending = queues[key]
+	const result = pending ? pending.then(operation) : operation()
+	if (!isPromise(result))
+		return result
+	const settled = result.then(() => {}, () => {})
+	queues[key] = settled
+	settled.then(() => {
+		if (queues[key] === settled)
+			delete queues[key]
+	})
+	return result
 }
 
 export function getObjectDiff(object1: Record<string, any>, object2: Record<string, any>) {
@@ -72,4 +83,21 @@ export function getObjectDiff(object1: Record<string, any>, object2: Record<stri
 
 export function isPromise(value: any): value is Promise<any> {
 	return value instanceof Promise
+}
+
+// Wait for any pending results; stay synchronous when every result is synchronous
+export function settleAll(results: unknown[]): Promise<void> | void {
+	const promises = results.filter(isPromise)
+	if (promises.length)
+		return Promise.all(promises).then(() => {})
+}
+
+// Compare state values across an async restore; returns undefined when a value cannot be serialized
+export function fingerprint(value: unknown): string | undefined {
+	try {
+		return JSON.stringify(value)
+	}
+	catch {
+		return undefined
+	}
 }
