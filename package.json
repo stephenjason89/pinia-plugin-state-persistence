@@ -21,9 +21,14 @@
 	"sideEffects": false,
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/esm/index.js",
-			"require": "./dist/cjs/index.js"
+			"import": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/esm/index.js"
+			},
+			"require": {
+				"types": "./dist/cjs/index.d.ts",
+				"default": "./dist/cjs/index.js"
+			}
 		}
 	},
 	"main": "./dist/cjs/index.js",
@@ -39,7 +44,7 @@
 		"docs:deploy": "bash ./deploy.sh",
 		"docs:preview": "vitepress preview docs",
 		"build:esm": "tsc",
-		"build:cjs": "tsc --project tsconfig.cjs.json",
+		"build:cjs": "tsc --project tsconfig.cjs.json && node -e \"require('fs').writeFileSync('dist/cjs/package.json', '{\\\"type\\\":\\\"commonjs\\\"}')\"",
 		"build": "npm run build:esm && npm run build:cjs",
 		"watch": "tsc --watch",
 		"prepublishOnly": "npm run build",
@@ -67,6 +72,7 @@
 		"husky": "^9.1.7",
 		"lint-staged": "^15.2.11",
 		"semantic-release": "^25.0.9",
+		"typescript": "~5.7.2",
 		"vitepress": "^1.5.0",
 		"vitepress-plugin-group-icons": "^1.3.2"
 	},

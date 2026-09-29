@@ -2,6 +2,8 @@ import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 import { applyStateFilter, createLogger, getObjectDiff, isPromise, queueTask } from './utils.js'
 
+export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
+
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
