@@ -1,3 +1,14 @@
+## [1.12.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.11.0...v1.12.0) (2026-10-02)
+
+### 🚀 Features
+
+* support pinia@4 ([#21](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/21)) ([81d1647](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/81d16470fb34e3ccec7c4b0ab9bb424e85c6148d)), closes [#20](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/20)
+
+### 🐛 Bug Fixes
+
+* make the CommonJS build loadable and export public option types ([#25](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/25)) ([03cb9ef](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/03cb9ef5a2a8b604859d373b842d96f9ee67a0ac))
+* prevent state loss during restore and persistence ([#27](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/27)) ([d3235e4](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/d3235e472efe455911dcb006f87a470d2cac6fe1))
+
 ## [1.11.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.10.3...v1.11.0) (2025-09-26)
 
 ### 🚀 Features
