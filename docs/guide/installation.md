@@ -20,6 +20,8 @@ yarn add pinia-plugin-state-persistence
 ```
 :::
 
+Supports Pinia 2.3+, 3.x, and 4.x.
+
 ## Vue Installation
 
 Add the plugin to your Pinia store. Ensure that your project is set up with TypeScript for better type safety and developer experience.
