@@ -1,3 +1,9 @@
+## [1.12.7](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.6...v1.12.7) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* prevent storage feedback while restoring state ([b8fbc5f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b8fbc5fadd81ba0df7b891b06855005b11c87d9c))
+
 ## [1.12.6](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.5...v1.12.6) (2026-10-04)
 
 ### 🐛 Bug Fixes
