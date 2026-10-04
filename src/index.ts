@@ -14,9 +14,15 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			log.info('SSR detected, no storage available.')
 			return null
 		}
-		if (window.localStorage) {
-			log.info('Using localStorage.')
-			return window.localStorage
+		try {
+			const storage = window.localStorage
+			if (storage) {
+				log.info('Using localStorage.')
+				return storage
+			}
+		}
+		catch (error) {
+			log.error('Unable to access localStorage:', error)
 		}
 		log.error('No valid storage found, persistence disabled.')
 		return null
@@ -70,7 +76,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (!storage)
 				storage = detectStorage(log)
 
-			if (!storage || ((clientOnly || storage.constructor.name.includes('LocalForage')) && typeof window === 'undefined')) {
+			if (!storage || ((clientOnly || storage.constructor?.name?.includes('LocalForage')) && typeof window === 'undefined')) {
 				log.warn(`Skipping ${context.store.$id}, storage unavailable.`)
 				return
 			}
