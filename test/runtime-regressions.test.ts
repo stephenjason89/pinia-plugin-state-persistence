@@ -1,4 +1,4 @@
-import type { PersistOptions, Storage } from '../src/types'
+import type { Storage } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
 import { createApp } from 'vue'
@@ -33,10 +33,6 @@ function install(storage?: Storage) {
 }
 
 let id = 0
-function _makeStore<S extends Record<string, any>>(state: () => S, persist: boolean | PersistOptions<S> | PersistOptions<S>[]) {
-	return defineStore(`runtime-${++id}`, { state, persist: persist as any })()
-}
-
 describe('runtime regressions', () => {
 	it('does not let a disposed store restore into its replacement', async () => {
 		const firstRead = deferred<string>()
