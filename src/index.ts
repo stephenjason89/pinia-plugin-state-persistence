@@ -34,6 +34,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				? [{}]
 				: [storeOptions]
 
+		let disposed = false
+
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
 			persistState: (mutation: any, state: S) => Promise<void> | void
@@ -83,7 +85,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const storedValues: Record<string, any> = Object.create(null)
 
 				const restoreState = (state: Record<string, any>) => {
-					if (!state || Object.keys(state).length === 0) {
+					if (disposed || !state || Object.keys(state).length === 0) {
 						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
 					}
@@ -195,6 +197,14 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		if (!persisters.length)
 			return
+
+		const dispose = context.store.$dispose
+		context.store.$dispose = () => {
+			if (disposed)
+				return
+			disposed = true
+			dispose.call(context.store)
+		}
 
 		const whenSettled = (promises: Array<Promise<void> | null>, callback?: () => void) => {
 			const promise = Promise.all(promises).then(() => {})
