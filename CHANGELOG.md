@@ -1,3 +1,9 @@
+## [1.12.13](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.12...v1.12.13) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* keep web storage values serialized with deep copy ([b57f999](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b57f99900c25ce965ff2b649827c08f380200651))
+
 ## [1.12.12](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.11...v1.12.12) (2026-10-04)
 
 ### 🐛 Bug Fixes
