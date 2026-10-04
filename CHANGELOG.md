@@ -1,3 +1,56 @@
+## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
+
+## [1.12.7](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.6...v1.12.7) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* prevent storage feedback while restoring state ([b8fbc5f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b8fbc5fadd81ba0df7b891b06855005b11c87d9c))
+
+## [1.12.6](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.5...v1.12.6) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* restore async configurations in declaration order ([74e8f60](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/74e8f6019167292623d56e06024191ae5d0d2502))
+
+## [1.12.5](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.4...v1.12.5) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* ignore restoration after store disposal ([1cfcc24](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/1cfcc24e924e142e075ec7cca7ecbec51a792b31))
+
+## [1.12.4](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.3...v1.12.4) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* normalize cross-realm storage promises ([cb906dc](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/cb906dc45fec2d141c9915b69cc736e5291f5054))
+
+### 📚 Documentation
+
+* correct API syntax and lint documentation examples ([af0fa03](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/af0fa030e0af600660ab90571852e76863d66d32))
+
+## [1.12.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.2...v1.12.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **types:** describe mapped codecs and raw storage values ([423349a](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/423349ab57800f8a4d65085c20060d59bc018b54))
+
+## [1.12.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.1...v1.12.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve array shapes in included paths ([9ec943f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/9ec943f1a8a040fec99b58186ddb12e6e92300f0))
+* protect unsupported state during async restore ([3a03b27](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a03b276d0d5744985c0662b1b9ee3a784baa287))
+
+## [1.12.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.0...v1.12.1) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve special own persistence properties ([5bbace2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5bbace2bd316df514fdd58551f37348fc5786b69))
+
 ## [1.12.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.11.0...v1.12.0) (2026-10-02)
 
 ### 🚀 Features
