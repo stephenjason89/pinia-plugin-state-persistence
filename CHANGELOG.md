@@ -1,3 +1,10 @@
+## [1.12.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.1...v1.12.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve array shapes in included paths ([9ec943f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/9ec943f1a8a040fec99b58186ddb12e6e92300f0))
+* protect unsupported state during async restore ([3a03b27](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a03b276d0d5744985c0662b1b9ee3a784baa287))
+
 ## [1.12.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.0...v1.12.1) (2026-10-04)
 
 ### 🐛 Bug Fixes
