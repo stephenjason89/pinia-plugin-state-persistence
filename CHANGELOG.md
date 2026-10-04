@@ -1,3 +1,9 @@
+## [1.12.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.2...v1.12.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **types:** describe mapped codecs and raw storage values ([423349a](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/423349ab57800f8a4d65085c20060d59bc018b54))
+
 ## [1.12.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.1...v1.12.2) (2026-10-04)
 
 ### 🐛 Bug Fixes
