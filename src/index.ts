@@ -52,7 +52,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
 			persistState: (mutation: any, state: S) => Promise<void> | void
-			restoration: () => Promise<void> | null
 			persistence: () => Promise<void> | null
 		}> = []
 
@@ -89,7 +88,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
-			let restorationPromise: Promise<void> | null = null
 			let persistencePromise: Promise<void> | null = null
 
 			const loadState = () => {
@@ -158,7 +156,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const stateBeforeRestore = Object.fromEntries(
 					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
 				)
-				restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
+				const restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
 					for (const stateKey of Object.keys(state)) {
 						const currentFingerprint = Object.hasOwn(context.store.$state, stateKey) ? fingerprint(context.store.$state[stateKey]) : undefined
@@ -189,11 +187,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						const storedValue = deepCopy ? deserialize(value) : value
 						const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
 						if (isPromise(result)) {
-							tasks.push(result.then(() => {}, error => console.error(`Error processing queue for key '${storageKey}':`, error)))
+							tasks.push(result.then(() => {}))
 						}
 					}
 					catch (error) {
-						log.error(`Failed to persist ${storageKey}:`, error)
+						tasks.push(Promise.reject(error))
 					}
 				}
 
@@ -220,10 +218,10 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							try {
 								const result = enqueue(storageQueues, prefixedKey, () => activeStorage.removeItem(prefixedKey))
 								if (isPromise(result))
-									tasks.push(result.then(() => {}, error => log.error(`Failed to remove ${storageKey}:`, error)))
+									tasks.push(result.then(() => {}))
 							}
 							catch (error) {
-								log.error(`Failed to remove ${storageKey}:`, error)
+								tasks.push(Promise.reject(error))
 							}
 						}
 					}
@@ -233,6 +231,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					persistencePromise = Promise.all(tasks).then(() => {
 						log.info(`State persistence complete for ${context.store.$id}`)
 					})
+					persistencePromise.catch(error => log.error(`Failed to persist ${context.store.$id}:`, error))
 					return persistencePromise
 				}
 				log.info(`State persistence complete for ${context.store.$id}`)
@@ -241,7 +240,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			persisters.push({
 				loadState,
 				persistState,
-				restoration: () => restorationPromise,
 				persistence: () => persistencePromise,
 			})
 		})
@@ -259,9 +257,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 		const whenSettled = (promises: Array<Promise<void> | null>, callback?: () => void) => {
 			const promise = Promise.all(promises).then(() => {})
-			if (callback) {
-				promise.then(callback)
-			}
+			promise.catch(() => {})
+			if (callback)
+				promise.then(callback).catch(() => {})
 			return promise
 		}
 
@@ -290,12 +288,17 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						}
 					})
 				: null
+			restorationBatch?.catch(() => {})
 			return restorationBatch ?? undefined
 		}
 		context.store.$restore = restoreAll
-		context.store.$persist = () => settleAll(persisters.map(persister =>
-			persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
-		))
+		context.store.$persist = () => {
+			const result = settleAll(persisters.map(persister =>
+				persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
+			))
+			result?.catch(() => {})
+			return result
+		}
 		context.store.$onRestore = (callback?: () => void) => whenSettled([restorationBatch], callback)
 		context.store.$onPersist = (callback?: () => void) => whenSettled(persisters.map(persister => persister.persistence()), callback)
 
