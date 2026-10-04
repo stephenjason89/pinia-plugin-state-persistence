@@ -1,3 +1,9 @@
+## [1.12.6](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.5...v1.12.6) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* restore async configurations in declaration order ([74e8f60](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/74e8f6019167292623d56e06024191ae5d0d2502))
+
 ## [1.12.5](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.4...v1.12.5) (2026-10-04)
 
 ### 🐛 Bug Fixes
