@@ -1,5 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
+import { isReactive, isRef } from 'vue'
 import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, prepareStateMerge, settleAll } from './utils.js'
 
 export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
@@ -47,7 +48,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		let restorationBatch: Promise<void> | null = null
 		let synchronousRestores: Array<() => void> | null = null
 		let orderedRestoration: Promise<void> | null = null
-		const restoredFingerprints = new Map<string, ReturnType<typeof fingerprint>>()
+		const restoredFingerprints = new Map<string, { present: boolean, value: ReturnType<typeof fingerprint> }>()
 
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
@@ -94,24 +95,95 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const generation = restorationGeneration
 				const tasks: Promise<void>[] = []
 				let storedState: Record<string, any> = {}
+				let hasStoredState = false
 				const storedValues: Record<string, any> = Object.create(null)
 
-				const restoreState = (state: Record<string, any>) => {
-					if (disposed || generation !== restorationGeneration || !state || Object.keys(state).length === 0) {
+				const restoreState = (state: Record<string, any>, protectedKeys = new Set<string>()) => {
+					if (disposed || generation !== restorationGeneration || (!hasStoredState && Object.keys(state).length === 0)) {
 						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
 					}
 					log.info(`Restoring state for ${context.store.$id}`)
 					prepareStateMerge(context.store.$state, state)
 					restoring = true
+					const restoredKeys = new Set(Object.keys(state))
 					try {
-						overwrite ? (context.store.$state = state) : context.store.$patch(state)
+						if (overwrite) {
+							context.store.$patch((currentState) => {
+								const restoreContainer = (stateKey: string, value: any) => {
+									const current = currentState[stateKey]
+									if (context.options.state || isRef(Object.getOwnPropertyDescriptor(currentState, stateKey)?.value) || !isReactive(current))
+										return false
+									const isRecord = (candidate: any) => candidate !== null && typeof candidate === 'object'
+										&& (Object.getPrototypeOf(candidate) === Object.prototype || Object.getPrototypeOf(candidate) === null)
+									const compatible = Array.isArray(current)
+										? value === undefined || Array.isArray(value)
+										: current instanceof Map
+											? value === undefined || value instanceof Map
+											: current instanceof Set
+												? value === undefined || value instanceof Set
+												: isRecord(current) && (value === undefined || isRecord(value))
+									if (!compatible) {
+										log.warn(`Skipping incompatible overwrite for setup state '${stateKey}'.`)
+										return true
+									}
+									if (Array.isArray(current)) {
+										current.splice(0, current.length, ...(value ?? []))
+									}
+									else if (current instanceof Map || current instanceof Set) {
+										const entries = value ? [...value] : []
+										current.clear()
+										if (current instanceof Map)
+											entries.forEach(([entryKey, entryValue]) => current.set(entryKey, entryValue))
+										else
+											entries.forEach(entry => current.add(entry))
+									}
+									else {
+										const entries = Object.entries(value ?? {})
+										Object.keys(current).forEach(entryKey => delete current[entryKey])
+										entries.forEach(([entryKey, entryValue]) => {
+											if (entryKey === '__proto__')
+												Object.defineProperty(current, entryKey, { value: entryValue, enumerable: true, configurable: true, writable: true })
+											else
+												current[entryKey] = entryValue
+										})
+									}
+									return true
+								}
+								for (const stateKey of Object.keys(currentState)) {
+									if (!Object.hasOwn(state, stateKey) && !protectedKeys.has(stateKey)) {
+										restoredKeys.add(stateKey)
+										if (restoreContainer(stateKey, undefined))
+											continue
+										if (isRef(Object.getOwnPropertyDescriptor(currentState, stateKey)?.value))
+											currentState[stateKey] = undefined
+										else
+											delete currentState[stateKey]
+									}
+								}
+								for (const [stateKey, value] of Object.entries(state)) {
+									if (restoreContainer(stateKey, value))
+										continue
+									if (stateKey !== '__proto__' || Object.hasOwn(currentState, stateKey))
+										currentState[stateKey] = value
+									else
+										Object.defineProperty(currentState, stateKey, { value, enumerable: true, configurable: true, writable: true })
+								}
+							})
+						}
+						else {
+							context.store.$patch(state)
+						}
 					}
 					finally {
 						restoring = false
 					}
-					for (const stateKey of Object.keys(state))
-						restoredFingerprints.set(stateKey, fingerprint(context.store.$state[stateKey]))
+					for (const stateKey of restoredKeys) {
+						restoredFingerprints.set(stateKey, {
+							present: Object.hasOwn(context.store.$state, stateKey),
+							value: fingerprint(context.store.$state[stateKey]),
+						})
+					}
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
@@ -120,7 +192,13 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							return
 						try {
 							const deserializedValue = typeof value === 'object' || (deepCopy && stateKey !== undefined) ? value : deserialize(value as string)
-							stateKey !== undefined ? (storedValues[stateKey] = deserializedValue) : (storedState = deserializedValue as Record<string, any>)
+							if (stateKey !== undefined) {
+								storedValues[stateKey] = deserializedValue
+							}
+							else if (deserializedValue && typeof deserializedValue === 'object') {
+								storedState = deserializedValue as Record<string, any>
+								hasStoredState = true
+							}
 						}
 						catch (error) {
 							log.error(`Error restoring ${storageKey}:`, error)
@@ -158,16 +236,21 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				)
 				const restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
-					for (const stateKey of Object.keys(state)) {
-						const currentFingerprint = Object.hasOwn(context.store.$state, stateKey) ? fingerprint(context.store.$state[stateKey]) : undefined
-						const changed = restoredFingerprints.has(stateKey)
-							? currentFingerprint !== restoredFingerprints.get(stateKey)
-							: Object.hasOwn(stateBeforeRestore, stateKey) && currentFingerprint !== stateBeforeRestore[stateKey]
+					const protectedKeys = new Set<string>()
+					const stateKeys = new Set([...Object.keys(stateBeforeRestore), ...Object.keys(context.store.$state), ...Object.keys(state)])
+					for (const stateKey of stateKeys) {
+						const currentPresent = Object.hasOwn(context.store.$state, stateKey)
+						const currentFingerprint = currentPresent ? fingerprint(context.store.$state[stateKey]) : undefined
+						const restored = restoredFingerprints.get(stateKey)
+						const changed = restored
+							? currentPresent !== restored.present || currentFingerprint !== restored.value
+							: currentPresent !== Object.hasOwn(stateBeforeRestore, stateKey) || currentFingerprint !== (Object.hasOwn(stateBeforeRestore, stateKey) ? stateBeforeRestore[stateKey] : undefined)
 						if (changed) {
 							delete state[stateKey]
+							protectedKeys.add(stateKey)
 						}
 					}
-					restoreState(state)
+					restoreState(state, protectedKeys)
 				})
 				orderedRestoration = restorationPromise
 				return restorationPromise
