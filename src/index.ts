@@ -197,8 +197,22 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				else {
 					setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
 					for (const [stateKey, storageKey] of Object.entries(key)) {
-						if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined)
+						if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
 							setItem(storageKey, serialize(filteredState[stateKey]))
+						}
+						else if ((!Object.hasOwn(state, stateKey) || state[stateKey] === undefined)
+							&& (!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
+							&& (!exclude || !([] as string[]).concat(exclude).includes(stateKey))) {
+							const prefixedKey = getPrefixedKey(storageKey)
+							try {
+								const result = enqueue(storageQueues, prefixedKey, () => activeStorage.removeItem(prefixedKey))
+								if (isPromise(result))
+									tasks.push(result.then(() => {}, error => log.error(`Failed to remove ${storageKey}:`, error)))
+							}
+							catch (error) {
+								log.error(`Failed to remove ${storageKey}:`, error)
+							}
+						}
 					}
 				}
 
