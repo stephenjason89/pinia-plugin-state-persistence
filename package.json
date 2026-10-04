@@ -39,6 +39,7 @@
 	],
 	"scripts": {
 		"test": "bun test",
+		"test:types": "tsc --project tsconfig.test-types.json",
 		"docs:dev": "vitepress dev docs",
 		"docs:build": "vitepress build docs",
 		"docs:deploy": "bash ./deploy.sh",
