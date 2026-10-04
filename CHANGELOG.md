@@ -1,3 +1,13 @@
+## [1.12.4](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.3...v1.12.4) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* normalize cross-realm storage promises ([cb906dc](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/cb906dc45fec2d141c9915b69cc736e5291f5054))
+
+### 📚 Documentation
+
+* correct API syntax and lint documentation examples ([af0fa03](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/af0fa030e0af600660ab90571852e76863d66d32))
+
 ## [1.12.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.2...v1.12.3) (2026-10-04)
 
 ### 🐛 Bug Fixes
