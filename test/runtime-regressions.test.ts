@@ -225,6 +225,49 @@ describe('runtime regressions', () => {
 			process.off('unhandledRejection', onUnhandled)
 		}
 	})
+	it('does not abort actions when automatic filtering or serialization fails', async () => {
+		for (const failingOption of ['filter', 'serialize'] as const) {
+			install(memoryStorage() as Storage)
+			const options = {
+				[failingOption]: () => {
+					throw new Error(`${failingOption} failed`)
+				},
+			}
+			const useStore = defineStore(`runtime-${++id}`, {
+				state: () => ({ count: 0, finished: false }),
+				actions: {
+					increment() {
+						this.count++
+						this.finished = true
+					},
+				},
+				persist: options,
+			})
+			const store = useStore()
+			expect(() => store.increment()).not.toThrow()
+			expect(store.finished).toBe(true)
+			await expect(store.$onPersist()).rejects.toThrow(`${failingOption} failed`)
+			await expect(Promise.resolve(store.$persist())).rejects.toThrow(`${failingOption} failed`)
+		}
+	})
+
+	it('reports a successful retry after an earlier synchronous write failure', async () => {
+		let failing = true
+		const storage = memoryStorage()
+		install({
+			...storage,
+			setItem: (key, value) => {
+				if (failing)
+					throw new Error('temporary failure')
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0 }), true)
+		await expect(Promise.resolve(store.$persist())).rejects.toThrow('temporary failure')
+		failing = false
+		store.$persist()
+		await expect(store.$onPersist()).resolves.toBeUndefined()
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
@@ -249,6 +292,15 @@ describe('runtime regressions', () => {
 		manual.resolve('{"count":2}')
 		await manualRestore
 		expect(store.count).toBe(2)
+	})
+	it('reports exceptions from restore and persist callbacks through the returned promise', async () => {
+		install(memoryStorage() as Storage)
+		const store = makeStore(() => ({ count: 0 }), true)
+		for (const observe of [store.$onRestore, store.$onPersist]) {
+			await expect(observe(() => {
+				throw new Error('callback failed')
+			})).rejects.toThrow('callback failed')
+		}
 	})
 
 	it('preserves a user edit back to defaults between async configurations', async () => {

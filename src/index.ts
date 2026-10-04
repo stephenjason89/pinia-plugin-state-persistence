@@ -88,7 +88,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
-			let restorationPromise: Promise<void> | null = null
 			let persistencePromise: Promise<void> | null = null
 
 			const loadState = () => {
@@ -157,7 +156,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const stateBeforeRestore = Object.fromEntries(
 					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
 				)
-				restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
+				const restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
 					for (const stateKey of Object.keys(state)) {
 						const currentFingerprint = Object.hasOwn(context.store.$state, stateKey) ? fingerprint(context.store.$state[stateKey]) : undefined
@@ -175,67 +174,75 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			}
 
 			const persistState = (mutation: any, state: S) => {
-				if (!filter(mutation, state)) {
-					log.info(`Skipping persistence for ${context.store.$id}.`)
-					return
-				}
-
 				const tasks: Promise<void>[] = []
-				const filteredState = applyStateFilter(state, include, exclude)
-				const setItem = (storageKey: string, value: string) => {
-					const prefixedKey = getPrefixedKey(storageKey)
-					try {
-						const storedValue = deepCopy ? deserialize(value) : value
-						const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
-						if (isPromise(result)) {
-							tasks.push(result.then(() => {}))
-						}
+				try {
+					if (!filter(mutation, state)) {
+						log.info(`Skipping persistence for ${context.store.$id}.`)
+						return
 					}
-					catch (error) {
-						tasks.push(Promise.reject(error))
-					}
-				}
 
-				if (typeof key === 'string') {
-					setItem(key, serialize(filteredState))
-				}
-				else {
-					const remainingState = getObjectDiff(filteredState, key)
-					if (deepCopy) {
-						for (const stateKey of Object.keys(key)) {
-							if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] === null)
-								Object.defineProperty(remainingState, stateKey, { value: null, enumerable: true, configurable: true, writable: true })
-						}
-					}
-					setItem(context.store.$id, serialize(remainingState))
-					for (const [stateKey, storageKey] of Object.entries(key)) {
-						if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
-							setItem(storageKey, serialize(filteredState[stateKey]))
-						}
-						else if ((!Object.hasOwn(state, stateKey) || state[stateKey] === undefined)
-							&& (!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
-							&& (!exclude || !([] as string[]).concat(exclude).includes(stateKey))) {
-							const prefixedKey = getPrefixedKey(storageKey)
-							try {
-								const result = enqueue(storageQueues, prefixedKey, () => activeStorage.removeItem(prefixedKey))
-								if (isPromise(result))
-									tasks.push(result.then(() => {}))
-							}
-							catch (error) {
-								tasks.push(Promise.reject(error))
+					persistencePromise = null
+					const filteredState = applyStateFilter(state, include, exclude)
+					const setItem = (storageKey: string, value: string) => {
+						const prefixedKey = getPrefixedKey(storageKey)
+						try {
+							const storedValue = deepCopy ? deserialize(value) : value
+							const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
+							if (isPromise(result)) {
+								tasks.push(result.then(() => {}))
 							}
 						}
+						catch (error) {
+							tasks.push(Promise.reject(error))
+						}
 					}
-				}
 
-				if (tasks.length) {
-					persistencePromise = Promise.all(tasks).then(() => {
-						log.info(`State persistence complete for ${context.store.$id}`)
-					})
-					persistencePromise.catch(error => log.error(`Failed to persist ${context.store.$id}:`, error))
+					if (typeof key === 'string') {
+						setItem(key, serialize(filteredState))
+					}
+					else {
+						const remainingState = getObjectDiff(filteredState, key)
+						if (deepCopy) {
+							for (const stateKey of Object.keys(key)) {
+								if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] === null)
+									Object.defineProperty(remainingState, stateKey, { value: null, enumerable: true, configurable: true, writable: true })
+							}
+						}
+						setItem(context.store.$id, serialize(remainingState))
+						for (const [stateKey, storageKey] of Object.entries(key)) {
+							if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
+								setItem(storageKey, serialize(filteredState[stateKey]))
+							}
+							else if ((!Object.hasOwn(state, stateKey) || state[stateKey] === undefined)
+								&& (!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
+								&& (!exclude || !([] as string[]).concat(exclude).includes(stateKey))) {
+								const prefixedKey = getPrefixedKey(storageKey)
+								try {
+									const result = enqueue(storageQueues, prefixedKey, () => activeStorage.removeItem(prefixedKey))
+									if (isPromise(result))
+										tasks.push(result.then(() => {}))
+								}
+								catch (error) {
+									tasks.push(Promise.reject(error))
+								}
+							}
+						}
+					}
+
+					if (tasks.length) {
+						persistencePromise = Promise.all(tasks).then(() => {
+							log.info(`State persistence complete for ${context.store.$id}`)
+						})
+						persistencePromise.catch(error => log.error(`Failed to persist ${context.store.$id}:`, error))
+						return persistencePromise
+					}
+					log.info(`State persistence complete for ${context.store.$id}`)
+				}
+				catch (error) {
+					persistencePromise = Promise.all([...tasks, Promise.reject(error)]).then(() => {})
+					persistencePromise.catch(failure => log.error(`Failed to persist ${context.store.$id}:`, failure))
 					return persistencePromise
 				}
-				log.info(`State persistence complete for ${context.store.$id}`)
 			}
 
 			persisters.push({
@@ -257,10 +264,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		}
 
 		const whenSettled = (promises: Array<Promise<void> | null>, callback?: () => void) => {
-			const promise = Promise.all(promises).then(() => {})
+			const promise = Promise.all(promises).then(() => callback?.())
 			promise.catch(() => {})
-			if (callback)
-				promise.then(callback).catch(() => {})
 			return promise
 		}
 
