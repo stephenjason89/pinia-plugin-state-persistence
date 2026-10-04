@@ -4,7 +4,7 @@ import { describe, expect, it } from 'bun:test'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
 import { createApp } from 'vue'
 import { createStatePersistence } from '../src/index'
-import { applyStateFilter, enqueue, fingerprint, getNestedValue, getObjectDiff } from '../src/utils'
+import { applyStateFilter, enqueue, fingerprint, getNestedValue, getObjectDiff, isPromise } from '../src/utils'
 
 function memoryStorage(initial: Record<string, string> = {}) {
 	const data = new Map(Object.entries(initial))
@@ -16,10 +16,10 @@ function memoryStorage(initial: Record<string, string> = {}) {
 	}
 }
 
-function deferred<T>() {
+function deferred<T>(PromiseType = Promise) {
 	let resolve!: (value: T) => void
 	let reject!: (reason: unknown) => void
-	const promise = new Promise<T>((onResolve, onReject) => {
+	const promise = new PromiseType<T>((onResolve, onReject) => {
 		resolve = onResolve
 		reject = onReject
 	})
@@ -392,5 +392,67 @@ describe('async restore fingerprints', () => {
 		read.resolve('{"count":5}')
 		await store.$onRestore()
 		expect(Number.isNaN(store.count)).toBe(true)
+	})
+})
+
+describe('cross-realm promises and thenables', () => {
+	const ForeignPromise: PromiseConstructor = runInNewContext('Promise')
+
+	it('recognizes native promises from another realm and restores Pinia state', async () => {
+		const read = ForeignPromise.resolve('{"count":5}')
+		expect(read instanceof Promise).toBe(false)
+		expect(isPromise(read)).toBe(true)
+		activate({ ...memoryStorage(), getItem: () => read })
+		const store = makeStore(() => ({ count: 0 }), {})
+		await store.$onRestore()
+		expect(store.count).toBe(5)
+	})
+
+	it('orders Pinia writes whose storage adapter returns foreign promises', async () => {
+		const storage = memoryStorage()
+		const firstWrite = deferred<void>(ForeignPromise)
+		const writes: number[] = []
+		activate({
+			...storage,
+			getItem: key => ForeignPromise.resolve(storage.getItem(key)),
+			setItem: (key, value) => {
+				writes.push(JSON.parse(value).count)
+				return (writes.length === 1 ? firstWrite.promise : ForeignPromise.resolve()).then(() => storage.setItem(key, value))
+			},
+		})
+		const store = makeStore(() => ({ count: 0 }), {})
+		await store.$onRestore()
+		store.count = 1
+		store.count = 2
+		expect(writes).toEqual([1])
+		firstWrite.resolve()
+		await store.$onPersist()
+		expect(writes).toEqual([1, 2])
+		expect(storage.data.get(store.$id)).toBe('{"count":2}')
+	})
+
+	it('recovers a queue after a rejected foreign promise', async () => {
+		const queues = {}
+		const events: string[] = []
+		const pending = deferred<void>(ForeignPromise)
+		const first = enqueue(queues, 'foreign', () => pending.promise)
+		const second = enqueue(queues, 'foreign', () => {
+			events.push('second')
+			return ForeignPromise.resolve('saved')
+		})
+		expect(events).toEqual([])
+		pending.reject(new Error('foreign failure'))
+		await expect(first).rejects.toThrow('foreign failure')
+		expect(await second).toBe('saved')
+		expect(events).toEqual(['second'])
+	})
+
+	it('normalizes thenables before tracking queue completion', async () => {
+		const thenable = { then: (resolve: (value: string | null) => void) => resolve('{"count":7}') }
+		expect(isPromise(thenable)).toBe(true)
+		activate({ ...memoryStorage(), getItem: () => thenable as any })
+		const store = makeStore(() => ({ count: 0 }), {})
+		await store.$onRestore()
+		expect(store.count).toBe(7)
 	})
 })
