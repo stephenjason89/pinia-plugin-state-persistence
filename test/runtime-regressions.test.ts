@@ -323,6 +323,35 @@ describe('runtime regressions', () => {
 		await store.$onRestore()
 		expect(store.$state).toEqual({ second: 2 })
 	})
+	it('keeps serialized strings for native localStorage and sessionStorage with deepCopy', () => {
+		const previous = Object.getOwnPropertyDescriptor(globalThis, 'window')
+		try {
+			for (const storageName of ['localStorage', 'sessionStorage'] as const) {
+				const storage = memoryStorage()
+				const nativeStorage = {
+					...storage,
+					setItem: (key: string, value: unknown) => storage.setItem(key, String(value)),
+				}
+				Object.defineProperty(globalThis, 'window', { configurable: true, value: { [storageName]: nativeStorage } })
+				const state = () => ({ nested: { count: 0 }, optional: 1 as number | null, label: 'default' })
+				const persist = { key: { nested: 'nested', optional: 'optional' }, deepCopy: true }
+				install(nativeStorage as Storage)
+				const store = makeStore(state, persist)
+				store.$patch({ nested: { count: 10 }, optional: null, label: 'saved' })
+				expect(storage.data.get('nested')).toBe('{"count":10}')
+				expect(storage.data.get('optional')).toBe('null')
+				install(nativeStorage as Storage)
+				const restored = defineStore(store.$id, { state, persist })()
+				expect(restored.$state).toEqual({ nested: { count: 10 }, optional: null, label: 'saved' })
+			}
+		}
+		finally {
+			if (previous)
+				Object.defineProperty(globalThis, 'window', previous)
+			else
+				Reflect.deleteProperty(globalThis, 'window')
+		}
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
