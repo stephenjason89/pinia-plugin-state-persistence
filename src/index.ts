@@ -35,6 +35,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				: [storeOptions]
 
 		let disposed = false
+		let orderedRestoration: Promise<void> | null = null
+		const restoredFingerprints = new Map<string, ReturnType<typeof fingerprint>>()
 
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
@@ -92,6 +94,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					log.info(`Restoring state for ${context.store.$id}`)
 					prepareStateMerge(context.store.$state, state)
 					overwrite ? (context.store.$state = state) : context.store.$patch(state)
+					for (const stateKey of Object.keys(state))
+						restoredFingerprints.set(stateKey, fingerprint(context.store.$state[stateKey]))
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
@@ -126,7 +130,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					Object.entries(key).forEach(([stateKey, storageKey]) => resolveAndDeserialize(storageKey, stateKey))
 				}
 
-				if (!tasks.length) {
+				const previousRestoration = orderedRestoration
+				if (!tasks.length && !previousRestoration) {
 					restoreState({ ...storedState, ...storedValues })
 					return
 				}
@@ -134,14 +139,20 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const stateBeforeRestore = Object.fromEntries(
 					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
 				)
-				restorationPromise = Promise.all(tasks).then(() => {
+				restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
 					for (const stateKey of Object.keys(state)) {
-						if (Object.hasOwn(stateBeforeRestore, stateKey) && fingerprint(context.store.$state[stateKey]) !== stateBeforeRestore[stateKey])
+						const currentFingerprint = Object.hasOwn(context.store.$state, stateKey) ? fingerprint(context.store.$state[stateKey]) : undefined
+						const changed = restoredFingerprints.has(stateKey)
+							? currentFingerprint !== restoredFingerprints.get(stateKey)
+							: Object.hasOwn(stateBeforeRestore, stateKey) && currentFingerprint !== stateBeforeRestore[stateKey]
+						if (changed) {
 							delete state[stateKey]
+						}
 					}
 					restoreState(state)
 				})
+				orderedRestoration = restorationPromise
 				return restorationPromise
 			}
 
@@ -214,7 +225,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			return promise
 		}
 
-		context.store.$restore = () => settleAll(persisters.map(persister => persister.loadState()))
+		context.store.$restore = () => {
+			orderedRestoration = null
+			restoredFingerprints.clear()
+			return settleAll(persisters.map(persister => persister.loadState()))
+		}
 		context.store.$persist = () => settleAll(persisters.map(persister =>
 			persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
 		))
