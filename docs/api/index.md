@@ -21,16 +21,18 @@ The `createStatePersistence` function initializes the state persistence plugin f
 
 ```ts twoslash
 // @noErrors
+import type { GlobalPersistOptions } from 'pinia-plugin-state-persistence'
 import { createStatePersistence } from 'pinia-plugin-state-persistence'
 
-createStatePersistence(globalOptions: GlobalPersistOptions)
+const globalOptions: GlobalPersistOptions = {}
+createStatePersistence(globalOptions)
 ```
 
 ### Parameters
 
 | Parameter       | Type                  | Description                                                                                                 |
 | --------------- | --------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `globalOptions` | `GlobalConfiguration` | A configuration object to define global persistence behavior (see [Configuration](../guide/configuration)). |
+| `globalOptions` | `GlobalPersistOptions` | A configuration object to define global persistence behavior (see [Configuration](../guide/configuration)). |
 
 ### Notes
 
