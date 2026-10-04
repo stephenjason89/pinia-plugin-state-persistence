@@ -1,3 +1,9 @@
+## [1.12.11](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.10...v1.12.11) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* isolate automatic persistence callback errors ([b249ff5](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b249ff52f2d50aaa70a572f55488ef831c7ed248))
+
 ## [1.12.10](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.9...v1.12.10) (2026-10-04)
 
 ### 🐛 Bug Fixes
