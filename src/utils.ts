@@ -104,13 +104,14 @@ export function enqueue<T>(queues: Record<string, Promise<unknown>>, key: string
 	const result = pending ? pending.then(operation) : operation()
 	if (!isPromise(result))
 		return result
-	const settled = result.then(() => {}, () => {})
+	const promise = Promise.resolve(result)
+	const settled = promise.then(() => {}, () => {})
 	Object.defineProperty(queues, key, { value: settled, writable: true, enumerable: true, configurable: true })
 	settled.then(() => {
 		if (queues[key] === settled)
 			delete queues[key]
 	})
-	return result
+	return promise
 }
 
 export function getObjectDiff(object1: Record<string, any>, object2: Record<string, any>) {
@@ -120,7 +121,7 @@ export function getObjectDiff(object1: Record<string, any>, object2: Record<stri
 }
 
 export function isPromise(value: any): value is Promise<any> {
-	return value instanceof Promise
+	return value != null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function'
 }
 
 // Wait for any pending results; stay synchronous when every result is synchronous
