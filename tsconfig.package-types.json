@@ -1,0 +1,13 @@
+{
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"rootDir": ".",
+		"types": [],
+		"noEmit": true,
+		"skipLibCheck": false
+	},
+	"include": [
+		"test/types/package/**/*.cts",
+		"test/types/package/**/*.mts"
+	]
+}

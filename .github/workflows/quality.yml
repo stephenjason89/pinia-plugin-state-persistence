@@ -42,5 +42,8 @@ jobs:
       - name: Build ESM and CommonJS
         run: bun run build
 
+      - name: Check packaged ESM and CommonJS types
+        run: bun run test:package-types
+
       - name: Build documentation
         run: bun run docs:build
