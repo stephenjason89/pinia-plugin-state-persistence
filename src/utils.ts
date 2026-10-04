@@ -1,3 +1,5 @@
+import { isReactive, isRef } from 'vue'
+
 export function createLogger(debug?: boolean) {
 	return {
 		info: (message: string, ...args: any[]) => {
@@ -19,14 +21,18 @@ export function createLogger(debug?: boolean) {
 }
 
 // Get nested value from object using dot notation
-export const getNestedValue = (obj: any, path: string) => path.split('.').reduce((acc, key) => acc?.[key], obj)
+export function getNestedValue(obj: any, path: string) {
+	return path.split('.').reduce((acc, key) =>
+		acc != null && Object.hasOwn(acc, key) ? acc[key] : undefined, obj)
+}
 
 // Set nested value in object using dot notation
 export function setNestedValue(obj: any, path: string, value: any) {
 	path.split('.').reduce((acc, key, idx, arr) => {
-		if (idx === arr.length - 1)
-			acc[key] = value
-		else acc[key] = acc[key] || {}
+		const next = idx === arr.length - 1
+			? value
+			: Object.hasOwn(acc, key) && acc[key] && typeof acc[key] === 'object' ? acc[key] : {}
+		Object.defineProperty(acc, key, { value: next, writable: true, enumerable: true, configurable: true })
 		return acc[key]
 	}, obj)
 }
@@ -49,10 +55,14 @@ export function applyStateFilter(state: Record<string, any>,	include: string | s
 		const lastKey = keys.pop()!
 		let parent: Record<string, any> = result
 		for (const key of keys) {
+			if (!Object.hasOwn(parent, key))
+				return
 			const child: unknown = parent[key]
 			if (!child || typeof child !== 'object')
 				return
-			parent = parent[key] = Array.isArray(child) ? [...child] : { ...child }
+			const copy = Array.isArray(child) ? [...child] : { ...child }
+			Object.defineProperty(parent, key, { value: copy, writable: true, enumerable: true, configurable: true })
+			parent = copy
 		}
 		delete parent[lastKey]
 	})
@@ -60,14 +70,35 @@ export function applyStateFilter(state: Record<string, any>,	include: string | s
 	return result
 }
 
+// Pinia merges own object fields with assignment; prepare special slots before that merge.
+export function prepareStateMerge(target: Record<string, any>, patch: Record<string, any>) {
+	const visited = new WeakMap<object, WeakSet<object>>()
+	const isPlainObject = (value: any) => value && typeof value === 'object'
+		&& Object.prototype.toString.call(value) === '[object Object]' && typeof value.toJSON !== 'function'
+	const prepare = (current: Record<string, any>, saved: Record<string, any>) => {
+		if (visited.get(current)?.has(saved))
+			return
+		if (!visited.has(current))
+			visited.set(current, new WeakSet())
+		visited.get(current)!.add(saved)
+		for (const [key, value] of Object.entries(saved)) {
+			if (key === '__proto__' && !Object.hasOwn(current, key))
+				Object.defineProperty(current, key, { value: undefined, enumerable: true, configurable: true, writable: true })
+			if (Object.hasOwn(current, key) && isPlainObject(current[key]) && isPlainObject(value) && !isRef(value) && !isReactive(value))
+				prepare(current[key], value)
+		}
+	}
+	prepare(target, patch)
+}
+
 // Run storage operations for the same key one at a time, starting each only after the previous one settles
 export function enqueue<T>(queues: Record<string, Promise<unknown>>, key: string, operation: () => T | Promise<T>): T | Promise<T> {
-	const pending = queues[key]
+	const pending = Object.hasOwn(queues, key) ? queues[key] : undefined
 	const result = pending ? pending.then(operation) : operation()
 	if (!isPromise(result))
 		return result
 	const settled = result.then(() => {}, () => {})
-	queues[key] = settled
+	Object.defineProperty(queues, key, { value: settled, writable: true, enumerable: true, configurable: true })
 	settled.then(() => {
 		if (queues[key] === settled)
 			delete queues[key]
@@ -77,7 +108,7 @@ export function enqueue<T>(queues: Record<string, Promise<unknown>>, key: string
 
 export function getObjectDiff(object1: Record<string, any>, object2: Record<string, any>) {
 	return Object.fromEntries(
-		Object.entries(object1).filter(([key]) => !(key in object2)),
+		Object.entries(object1).filter(([key]) => !Object.hasOwn(object2, key)),
 	)
 }
 
