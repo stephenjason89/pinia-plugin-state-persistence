@@ -1,3 +1,101 @@
+## [1.12.13](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.12...v1.12.13) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* keep web storage values serialized with deep copy ([b57f999](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b57f99900c25ce965ff2b649827c08f380200651))
+
+## [1.12.12](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.11...v1.12.12) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* overwrite snapshots without disconnecting setup state ([db585a1](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/db585a12e8eb43309f4643f69a27abe28dcc1cbd))
+
+### 📚 Documentation
+
+* recommend patch batching for persistence workloads ([7d3b05f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/7d3b05ff1aae45aa4786e1b909f86f95c7c7b077))
+
+## [1.12.11](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.10...v1.12.11) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* isolate automatic persistence callback errors ([b249ff5](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b249ff52f2d50aaa70a572f55488ef831c7ed248))
+
+## [1.12.10](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.9...v1.12.10) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* report persistence failures to explicit callers ([84e5f3e](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/84e5f3e6183495c3e17eb7f1af77fa99c8b3e713))
+
+## [1.12.9](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.8...v1.12.9) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve mapped null values in deep copy storage ([2fcab81](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/2fcab81e0a26e0a1d9d89ba24384f1642cc4e8d4))
+
+## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
+* tolerate inaccessible browser storage and plain adapters ([7853154](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/7853154d950991f823fc6d2c685b5c73c3a3f83f))
+
+### 📦 Chores
+
+* **release:** 1.12.8 [skip ci] ([349e977](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/349e977e6a488cb5c18be4acb25c7c5ff4cf2dc6))
+
+## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
+
+## [1.12.7](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.6...v1.12.7) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* prevent storage feedback while restoring state ([b8fbc5f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/b8fbc5fadd81ba0df7b891b06855005b11c87d9c))
+
+## [1.12.6](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.5...v1.12.6) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* restore async configurations in declaration order ([74e8f60](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/74e8f6019167292623d56e06024191ae5d0d2502))
+
+## [1.12.5](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.4...v1.12.5) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* ignore restoration after store disposal ([1cfcc24](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/1cfcc24e924e142e075ec7cca7ecbec51a792b31))
+
+## [1.12.4](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.3...v1.12.4) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* normalize cross-realm storage promises ([cb906dc](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/cb906dc45fec2d141c9915b69cc736e5291f5054))
+
+### 📚 Documentation
+
+* correct API syntax and lint documentation examples ([af0fa03](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/af0fa030e0af600660ab90571852e76863d66d32))
+
+## [1.12.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.2...v1.12.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **types:** describe mapped codecs and raw storage values ([423349a](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/423349ab57800f8a4d65085c20060d59bc018b54))
+
+## [1.12.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.1...v1.12.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve array shapes in included paths ([9ec943f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/9ec943f1a8a040fec99b58186ddb12e6e92300f0))
+* protect unsupported state during async restore ([3a03b27](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a03b276d0d5744985c0662b1b9ee3a784baa287))
+
+## [1.12.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.0...v1.12.1) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve special own persistence properties ([5bbace2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5bbace2bd316df514fdd58551f37348fc5786b69))
+
 ## [1.12.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.11.0...v1.12.0) (2026-10-02)
 
 ### 🚀 Features
