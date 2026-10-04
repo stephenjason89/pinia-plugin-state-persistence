@@ -1,6 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
-import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, settleAll } from './utils.js'
+import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, prepareStateMerge, settleAll } from './utils.js'
 
 export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 
@@ -80,7 +80,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const loadState = () => {
 				const tasks: Promise<void>[] = []
 				let storedState: Record<string, any> = {}
-				const storedValues: Record<string, any> = {}
+				const storedValues: Record<string, any> = Object.create(null)
 
 				const restoreState = (state: Record<string, any>) => {
 					if (!state || Object.keys(state).length === 0) {
@@ -88,6 +88,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						return
 					}
 					log.info(`Restoring state for ${context.store.$id}`)
+					prepareStateMerge(context.store.$state, state)
 					overwrite ? (context.store.$state = state) : context.store.$patch(state)
 				}
 
@@ -96,8 +97,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						if (value === null || value === undefined)
 							return
 						try {
-							const deserializedValue = typeof value === 'object' || (deepCopy && stateKey) ? value : deserialize(value as string)
-							stateKey ? (storedValues[stateKey] = deserializedValue) : (storedState = deserializedValue as Record<string, any>)
+							const deserializedValue = typeof value === 'object' || (deepCopy && stateKey !== undefined) ? value : deserialize(value as string)
+							stateKey !== undefined ? (storedValues[stateKey] = deserializedValue) : (storedState = deserializedValue as Record<string, any>)
 						}
 						catch (error) {
 							log.error(`Error restoring ${storageKey}:`, error)
@@ -134,7 +135,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				restorationPromise = Promise.all(tasks).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
 					for (const stateKey of Object.keys(state)) {
-						if (stateKey in stateBeforeRestore && fingerprint(context.store.$state[stateKey]) !== stateBeforeRestore[stateKey])
+						if (Object.hasOwn(stateBeforeRestore, stateKey) && fingerprint(context.store.$state[stateKey]) !== stateBeforeRestore[stateKey])
 							delete state[stateKey]
 					}
 					restoreState(state)
@@ -170,7 +171,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				else {
 					setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
 					for (const [stateKey, storageKey] of Object.entries(key)) {
-						if (filteredState[stateKey] !== undefined)
+						if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined)
 							setItem(storageKey, serialize(filteredState[stateKey]))
 					}
 				}
