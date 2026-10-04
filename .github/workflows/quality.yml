@@ -42,5 +42,8 @@ jobs:
       - name: Build ESM and CommonJS
         run: bun run build
 
+      - name: Test restoration on Node.js
+        run: bun run test:node
+
       - name: Build documentation
         run: bun run docs:build

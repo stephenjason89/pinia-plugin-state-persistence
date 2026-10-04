@@ -142,7 +142,12 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 										return true
 									}
 									if (Array.isArray(current)) {
-										current.splice(0, current.length, ...(value ?? []))
+										const entries = [...(value ?? [])]
+										current.splice(0, current.length)
+										// Bound call arguments and batch reactive notifications.
+										const batchSize = 4096
+										for (let index = 0; index < entries.length; index += batchSize)
+											current.push(...entries.slice(index, index + batchSize))
 									}
 									else if (current instanceof Map || current instanceof Set) {
 										const entries = value ? [...value] : []
