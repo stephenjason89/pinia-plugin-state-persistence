@@ -1,3 +1,9 @@
+## [1.12.9](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.8...v1.12.9) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve mapped null values in deep copy storage ([2fcab81](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/2fcab81e0a26e0a1d9d89ba24384f1642cc4e8d4))
+
 ## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
 
 ### 🐛 Bug Fixes
