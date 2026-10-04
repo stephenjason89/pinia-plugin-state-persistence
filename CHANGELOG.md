@@ -1,3 +1,9 @@
+## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
+
 ## [1.12.7](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.6...v1.12.7) (2026-10-04)
 
 ### 🐛 Bug Fixes
