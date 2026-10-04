@@ -165,6 +165,23 @@ describe('runtime regressions', () => {
 		const store = makeStore(() => ({ count: 0 }), { key: 'count' })
 		expect(store.count).toBe(10)
 	})
+	it('round-trips mapped deepCopy null without changing raw primitive strings', () => {
+		const storage = memoryStorage()
+		const state = () => ({ first: 1 as number | null, second: 2 as number | null, text: 'default' })
+		const persist = { key: { first: 'first', second: 'second', text: 'text' }, deepCopy: true }
+		install(storage as Storage)
+		const store = makeStore(state, persist)
+		store.$patch({ first: null, second: null, text: 'null' })
+
+		install(storage as Storage)
+		const restored = defineStore(store.$id, { state, persist })()
+		expect(restored.$state).toEqual({ first: null, second: null, text: 'null' })
+		restored.first = 7
+
+		install(storage as Storage)
+		const updated = defineStore(store.$id, { state, persist })()
+		expect(updated.$state).toEqual({ first: 7, second: null, text: 'null' })
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
