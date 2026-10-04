@@ -35,6 +35,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				: [storeOptions]
 
 		let disposed = false
+		let restorationGeneration = 0
+		let restoring = false
+		let mutationVersion = 0
+		let restorationBatch: Promise<void> | null = null
+		let synchronousRestores: Array<() => void> | null = null
 		let orderedRestoration: Promise<void> | null = null
 		const restoredFingerprints = new Map<string, ReturnType<typeof fingerprint>>()
 
@@ -82,18 +87,25 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			let persistencePromise: Promise<void> | null = null
 
 			const loadState = () => {
+				const generation = restorationGeneration
 				const tasks: Promise<void>[] = []
 				let storedState: Record<string, any> = {}
 				const storedValues: Record<string, any> = Object.create(null)
 
 				const restoreState = (state: Record<string, any>) => {
-					if (disposed || !state || Object.keys(state).length === 0) {
+					if (disposed || generation !== restorationGeneration || !state || Object.keys(state).length === 0) {
 						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
 					}
 					log.info(`Restoring state for ${context.store.$id}`)
 					prepareStateMerge(context.store.$state, state)
-					overwrite ? (context.store.$state = state) : context.store.$patch(state)
+					restoring = true
+					try {
+						overwrite ? (context.store.$state = state) : context.store.$patch(state)
+					}
+					finally {
+						restoring = false
+					}
 					for (const stateKey of Object.keys(state))
 						restoredFingerprints.set(stateKey, fingerprint(context.store.$state[stateKey]))
 				}
@@ -132,7 +144,8 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 				const previousRestoration = orderedRestoration
 				if (!tasks.length && !previousRestoration) {
-					restoreState({ ...storedState, ...storedValues })
+					const restore = () => restoreState({ ...storedState, ...storedValues })
+					synchronousRestores ? synchronousRestores.push(restore) : restore()
 					return
 				}
 
@@ -225,20 +238,48 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			return promise
 		}
 
-		context.store.$restore = () => {
+		const restoreAll = () => {
+			const generation = ++restorationGeneration
 			orderedRestoration = null
 			restoredFingerprints.clear()
-			return settleAll(persisters.map(persister => persister.loadState()))
+			const versionBeforeRestore = mutationVersion
+			const restores: Array<() => void> = []
+			synchronousRestores = restores
+			let results: Array<Promise<void> | void>
+			try {
+				results = persisters.map(persister => persister.loadState())
+			}
+			finally {
+				synchronousRestores = null
+			}
+			restores.forEach(restore => restore())
+			const result = settleAll(results)
+			restorationBatch = isPromise(result)
+				? result.then(() => {
+						if (!disposed && generation === restorationGeneration && mutationVersion !== versionBeforeRestore) {
+							return settleAll(persisters.map(persister =>
+								persister.persistState({ type: 'restore', storeId: context.store.$id }, context.store.$state),
+							))
+						}
+					})
+				: null
+			return restorationBatch ?? undefined
 		}
+		context.store.$restore = restoreAll
 		context.store.$persist = () => settleAll(persisters.map(persister =>
 			persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
 		))
-		context.store.$onRestore = (callback?: () => void) => whenSettled(persisters.map(persister => persister.restoration()), callback)
+		context.store.$onRestore = (callback?: () => void) => whenSettled([restorationBatch], callback)
 		context.store.$onPersist = (callback?: () => void) => whenSettled(persisters.map(persister => persister.persistence()), callback)
 
+		restoreAll()
 		persisters.forEach((persister) => {
-			persister.loadState()
-			context.store.$subscribe(persister.persistState, { flush: 'sync' })
+			context.store.$subscribe((mutation, state) => {
+				if (!restoring) {
+					mutationVersion++
+					persister.persistState(mutation, state)
+				}
+			}, { flush: 'sync' })
 		})
 	}
 }
