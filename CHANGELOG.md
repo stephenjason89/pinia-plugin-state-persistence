@@ -1,3 +1,13 @@
+## [1.12.14](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.13...v1.12.14) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **types:** support CommonJS package consumers ([adb61c2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/adb61c28a220a506f481e509b1c2c37b62d87bae))
+
+### 📚 Documentation
+
+* define persistence failure and storage compatibility contracts ([3bc358c](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3bc358c9e9dfe1374296d09cd0c9ddb9a3595f6e))
+
 ## [1.12.13](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.12...v1.12.13) (2026-10-04)
 
 ### 🐛 Bug Fixes
