@@ -182,6 +182,49 @@ describe('runtime regressions', () => {
 		const updated = defineStore(store.$id, { state, persist })()
 		expect(updated.$state).toEqual({ first: 7, second: null, text: 'null' })
 	})
+
+	it('reports synchronous and asynchronous write failures to explicit callers', async () => {
+		for (const asynchronous of [false, true]) {
+			const failure = new Error(asynchronous ? 'async write failed' : 'sync write failed')
+			const storage = {
+				...memoryStorage(),
+				setItem: () => {
+					if (asynchronous)
+						return Promise.reject(failure)
+					throw failure
+				},
+			}
+			install(storage)
+			const store = makeStore(() => ({ count: 0 }), true)
+			expect(() => {
+				store.count++
+			}).not.toThrow()
+			await expect(store.$onPersist()).rejects.toThrow(failure.message)
+			await expect(Promise.resolve(store.$persist())).rejects.toThrow(failure.message)
+		}
+	})
+
+	it('handles ignored persistence failures and rejected callback observers', async () => {
+		const unhandled: unknown[] = []
+		const onUnhandled = (reason: unknown) => unhandled.push(reason)
+		process.on('unhandledRejection', onUnhandled)
+		try {
+			install({ ...memoryStorage(), setItem: () => Promise.reject(new Error('write failed')) })
+			const store = makeStore(() => ({ count: 0 }), true)
+			store.count++
+			store.$persist()
+			let called = false
+			store.$onPersist(() => {
+				called = true
+			})
+			await new Promise(resolve => setTimeout(resolve, 10))
+			expect(called).toBe(false)
+			expect(unhandled).toEqual([])
+		}
+		finally {
+			process.off('unhandledRejection', onUnhandled)
+		}
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
