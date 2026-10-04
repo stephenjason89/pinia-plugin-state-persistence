@@ -29,6 +29,19 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		return null
 	}
 
+	const isWebStorage = (storage: Storage) => {
+		if (typeof window === 'undefined')
+			return false
+		for (const name of ['localStorage', 'sessionStorage'] as const) {
+			try {
+				if (window[name] === storage)
+					return true
+			}
+			catch {}
+		}
+		return false
+	}
+
 	return (context: PiniaPluginContext) => {
 		const storeOptions = context.options.persist
 		if (!storeOptions) {
@@ -82,6 +95,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			}
 
 			const activeStorage = storage
+			const storesRawValues = deepCopy && !isWebStorage(activeStorage)
 			let storageQueues = queues.get(activeStorage)
 			if (!storageQueues)
 				queues.set(activeStorage, storageQueues = {})
@@ -196,7 +210,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						if (value === null || value === undefined)
 							return
 						try {
-							const deserializedValue = typeof value === 'object' || (deepCopy && stateKey !== undefined) ? value : deserialize(value as string)
+							const deserializedValue = typeof value === 'object' || (storesRawValues && stateKey !== undefined) ? value : deserialize(value as string)
 							if (stateKey !== undefined) {
 								storedValues[stateKey] = deserializedValue
 							}
@@ -274,7 +288,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					const setItem = (storageKey: string, value: string) => {
 						const prefixedKey = getPrefixedKey(storageKey)
 						try {
-							const storedValue = deepCopy ? deserialize(value) : value
+							const storedValue = storesRawValues ? deserialize(value) : value
 							const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
 							if (isPromise(result)) {
 								tasks.push(result.then(() => {}))
@@ -290,7 +304,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 					else {
 						const remainingState = getObjectDiff(filteredState, key)
-						if (deepCopy) {
+						if (storesRawValues) {
 							for (const stateKey of Object.keys(key)) {
 								if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] === null)
 									Object.defineProperty(remainingState, stateKey, { value: null, enumerable: true, configurable: true, writable: true })
