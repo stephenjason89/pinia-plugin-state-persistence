@@ -201,7 +201,14 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					setItem(key, serialize(filteredState))
 				}
 				else {
-					setItem(context.store.$id, serialize(getObjectDiff(filteredState, key)))
+					const remainingState = getObjectDiff(filteredState, key)
+					if (deepCopy) {
+						for (const stateKey of Object.keys(key)) {
+							if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] === null)
+								Object.defineProperty(remainingState, stateKey, { value: null, enumerable: true, configurable: true, writable: true })
+						}
+					}
+					setItem(context.store.$id, serialize(remainingState))
 					for (const [stateKey, storageKey] of Object.entries(key)) {
 						if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
 							setItem(storageKey, serialize(filteredState[stateKey]))
