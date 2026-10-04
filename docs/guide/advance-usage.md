@@ -15,26 +15,26 @@ If you change a top-level state property before restoration finishes, your chang
 ### Example Usage
 
 ```typescript
-const store = useUserStore();
+const store = useUserStore()
 
 // Promise-based (async/await)
 onMounted(async () => {
-  await store.$onRestore();
-  // Safe to check persisted data
-  if (!store.userData.length) {
-    await store.fetchUserData();
-  }
-});
+	await store.$onRestore()
+	// Safe to check persisted data
+	if (!store.userData.length) {
+		await store.fetchUserData()
+	}
+})
 
 // Callback-based
 onMounted(() => {
-  store.$onRestore(() => {
-    // Safe to check persisted data
-    if (!store.userData.length) {
-      store.fetchUserData();
-    }
-  });
-});
+	store.$onRestore(() => {
+		// Safe to check persisted data
+		if (!store.userData.length) {
+			store.fetchUserData()
+		}
+	})
+})
 ```
 
 ## `$onPersist`
@@ -44,24 +44,24 @@ The `$onPersist` method helps you wait for persistence operations to complete, e
 ### Example Usage
 
 ```typescript
-const store = useUserStore();
+const store = useUserStore()
 
 // Promise-based (async/await)
-const saveData = async () => {
-  store.updateProfile({ name: "John", email: "john@example.com" });
-  await store.$onPersist();
-  // Safe to show success or navigate
-  showSuccessMessage("Saved!");
-};
+async function saveData() {
+	store.updateProfile({ name: 'John', email: 'john@example.com' })
+	await store.$onPersist()
+	// Safe to show success or navigate
+	showSuccessMessage('Saved!')
+}
 
 // Callback-based
-const saveData = () => {
-  store.updateProfile({ name: "John", email: "john@example.com" });
-  store.$onPersist(() => {
-    // Safe to show success or navigate
-    showSuccessMessage("Saved!");
-  });
-};
+function saveData() {
+	store.updateProfile({ name: 'John', email: 'john@example.com' })
+	store.$onPersist(() => {
+		// Safe to show success or navigate
+		showSuccessMessage('Saved!')
+	})
+}
 ```
 
 ## `$restore`
@@ -74,10 +74,10 @@ The `$restore` function allows you to manually synchronize the state from persis
 ### Example Usage
 
 ```typescript
-const store = useStore();
+const store = useStore()
 
 // Restore the state from storage manually
-store.$restore();
+store.$restore()
 ```
 
 Use this functionality sparingly for specific cases to ensure the store stays in sync with storage.
@@ -92,10 +92,10 @@ The `$persist` function forces the store to persist its current state into the c
 ### Example Usage
 
 ```typescript
-const store = useStore();
+const store = useStore()
 
 // Force persist the current state to storage manually
-store.$persist();
+store.$persist()
 ```
 
 This is particularly helpful in batch updates or custom save operations that bypass normal mutation flows.
@@ -107,20 +107,20 @@ The plugin supports persisting state properties on separate keys when an object 
 ### Example Configuration
 
 ```typescript
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia'
 
-export const useExampleStore = defineStore("example", {
-  state: () => ({
-    userId: 1,
-    token: "Bearer ...",
-  }),
-  persist: {
-    key: {
-      userId: "user-id-storage-key",
-      token: "user-token-storage-key",
-    },
-  },
-});
+export const useExampleStore = defineStore('example', {
+	state: () => ({
+		userId: 1,
+		token: 'Bearer ...',
+	}),
+	persist: {
+		key: {
+			userId: 'user-id-storage-key',
+			token: 'user-token-storage-key',
+		},
+	},
+})
 ```
 
 ### Behavior
@@ -136,27 +136,27 @@ The plugin supports persisting state properties to multiple storages by allowing
 ### Example Configuration
 
 ```typescript
-import { defineStore } from "pinia";
+import { defineStore } from 'pinia'
 
-export const useExampleStore = defineStore("example", {
-  state: () => ({
-    userId: 1,
-    token: "Bearer ...",
-    preferences: { theme: "dark" },
-  }),
-  persist: [
-    {
-      key: "user-data",
-      storage: localStorage,
-      include: ["userId", "token"],
-    },
-    {
-      key: "preferences-storage",
-      storage: sessionStorage,
-      include: ["preferences"],
-    },
-  ],
-});
+export const useExampleStore = defineStore('example', {
+	state: () => ({
+		userId: 1,
+		token: 'Bearer ...',
+		preferences: { theme: 'dark' },
+	}),
+	persist: [
+		{
+			key: 'user-data',
+			storage: localStorage,
+			include: ['userId', 'token'],
+		},
+		{
+			key: 'preferences-storage',
+			storage: sessionStorage,
+			include: ['preferences'],
+		},
+	],
+})
 ```
 
 ### Behavior
