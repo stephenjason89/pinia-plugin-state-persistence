@@ -1,3 +1,9 @@
+## [1.12.10](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.9...v1.12.10) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* report persistence failures to explicit callers ([84e5f3e](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/84e5f3e6183495c3e17eb7f1af77fa99c8b3e713))
+
 ## [1.12.9](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.8...v1.12.9) (2026-10-04)
 
 ### 🐛 Bug Fixes
