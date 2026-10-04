@@ -180,6 +180,27 @@ describe('own-property persistence', () => {
 })
 
 describe('included path shape', () => {
+	it('includes array length without changing its descriptor or live values', () => {
+		const state = { items: [{ name: 'first' }, { name: 'second' }] }
+		for (const include of ['items.length', ['items.0.name', 'items.length'], ['items', 'items.length']]) {
+			const filtered = applyStateFilter(state, include, null)
+			expect(Array.isArray(filtered.items)).toBe(true)
+			expect(filtered.items.length).toBe(2)
+			expect(Object.getOwnPropertyDescriptor(filtered.items, 'length')).toMatchObject({ enumerable: false, configurable: false })
+			expect(state.items).toEqual([{ name: 'first' }, { name: 'second' }])
+		}
+		expect(applyStateFilter({ metadata: { length: 2 } }, 'metadata.length', null)).toEqual({ metadata: { length: 2 } })
+	})
+
+	it('persists an array length include through Pinia without rejecting', async () => {
+		const storage = memoryStorage()
+		activate(storage)
+		const store = makeStore(() => ({ items: [1, 2] }), { include: 'items.length' })
+		await store.$persist()
+		expect(JSON.parse(storage.data.get(store.$id)!)).toEqual({ items: [null, null] })
+		expect(store.items).toEqual([1, 2])
+	})
+
 	it('preserves nested arrays when including individual array item fields', () => {
 		const state = { items: [{ name: 'a', secret: 'first' }, { name: 'b', secret: 'second' }] }
 		const filtered = applyStateFilter(state, ['items.0.name', 'items.1.name'], null)
