@@ -127,12 +127,41 @@ export function settleAll(results: unknown[]): Promise<void> | void {
 		return Promise.all(promises).then(() => {})
 }
 
-// Compare state values across an async restore; returns undefined when a value cannot be serialized
-export function fingerprint(value: unknown): string | undefined {
+// Keep JSON and supported top-level custom values stable; unknown comparisons never permit an async overwrite
+export function fingerprint(value: unknown): string | symbol | undefined {
+	if (typeof value === 'number' && (!Number.isFinite(value) || Object.is(value, -0)))
+		return `number:${Object.is(value, -0) ? '-0' : value}`
+	if (typeof value === 'bigint')
+		return `bigint:${value}`
 	try {
-		return JSON.stringify(value)
+		let comparable = value
+		let prefix = ''
+		const tag = Object.prototype.toString.call(value)
+		if (tag === '[object Map]') {
+			comparable = Array.from((value as Map<unknown, unknown>).entries())
+			prefix = 'map:'
+		}
+		else if (tag === '[object Set]') {
+			comparable = Array.from((value as Set<unknown>).values())
+			prefix = 'set:'
+		}
+		else if (tag === '[object RegExp]') {
+			const pattern = value as RegExp
+			comparable = [pattern.source, pattern.flags, pattern.lastIndex]
+			prefix = 'regexp:'
+		}
+		const serialized = JSON.stringify(comparable, (_key, current) => {
+			const type = typeof current
+			const tag = Object.prototype.toString.call(current)
+			const unsupported = type === 'bigint' || type === 'function' || type === 'symbol' || tag === '[object Map]' || tag === '[object Set]' || tag === '[object RegExp]'
+			const lossyContainerValue = (prefix && current === undefined) || (type === 'number' && (!Number.isFinite(current) || Object.is(current, -0)))
+			if (unsupported || lossyContainerValue)
+				throw new TypeError('State cannot be compared reliably using JSON')
+			return current
+		})
+		return prefix ? `${prefix}${serialized}` : serialized
 	}
 	catch {
-		return undefined
+		return Symbol('uncomparable state')
 	}
 }
