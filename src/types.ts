@@ -2,21 +2,26 @@ import type { StateTree } from 'pinia'
 
 type MaybePromise<T> = T | Promise<T>
 
-export interface Storage {
-	getItem: (key: string) => MaybePromise<string | object | null>
-	setItem: (key: string, value: string) => MaybePromise<any>
-	removeItem: (key: string) => MaybePromise<any>
-}
+export type StorageValue = string | number | boolean | object | null
 
-export interface PersistOptions<S extends StateTree = StateTree> {
+// Keep native string-only storage methods assignable alongside raw-value adapters.
+/* eslint-disable ts/method-signature-style */
+export interface Storage {
+	getItem(key: string): MaybePromise<StorageValue>
+	setItem(key: string, value: StorageValue): MaybePromise<any>
+	removeItem(key: string): MaybePromise<any>
+}
+/* eslint-enable ts/method-signature-style */
+
+export interface PersistOptions<S extends StateTree = StateTree, SerializationValue = Partial<S>> {
 	key?: string | Record<keyof S, string> | Record<string, string>
 	debug?: boolean
 	overwrite?: boolean
 	clientOnly?: boolean
 	storage?: Storage
 	filter?: (mutation: any, state: S) => boolean
-	serialize?: (state: Partial<S>) => string
-	deserialize?: (state: string) => Partial<S>
+	serialize?: (state: SerializationValue) => string
+	deserialize?: (state: string) => Partial<S> | S[keyof S]
 	deepCopy?: boolean
 	include?: string | string[]
 	exclude?: string | string[]
