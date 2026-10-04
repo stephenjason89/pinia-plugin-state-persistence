@@ -100,6 +100,28 @@ store.$persist()
 
 This is particularly helpful in batch updates or custom save operations that bypass normal mutation flows.
 
+## Batch updates with `$patch`
+
+Use Pinia's existing `$patch` function when one operation changes several state values. The plugin subscribes synchronously, so separate direct assignments trigger separate persistence callbacks. A function passed to `$patch` groups those changes into one callback per persistence configuration.
+
+```typescript
+store.$patch((state) => {
+	state.profile.name = 'John'
+	state.profile.email = 'john@example.com'
+	state.preferences.theme = 'dark'
+})
+await store.$onPersist()
+```
+
+A local benchmark used one configuration, one storage key, a state containing 2,000 rows, and a JSON snapshot of about 337 KB. It changed a counter 100 times with an asynchronous adapter.
+
+| Update pattern | Storage writes | Total serialized payload |
+| --- | --- | --- |
+| 100 direct assignments | 100 | About 33.7 MB |
+| The same assignments inside one `$patch` | 1 | About 337 KB |
+
+These are local-workload write counts. Timing varies by backend. Asynchronous storage still requires synchronous state filtering and serialization before writes are queued. Use `include` to keep snapshots focused, and group related changes with `$patch`. For mapped storage keys or multiple configurations, one callback can produce several writes.
+
 ## Object Key Persistence
 
 The plugin supports persisting state properties on separate keys when an object is provided for the `key` option. This allows finer control over how state properties are stored.
