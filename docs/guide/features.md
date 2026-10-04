@@ -51,14 +51,27 @@
 <details>
 <summary>To add custom storage (Click to expand)</summary>
 
-Implement the following interface to use custom storage:
+Import the plugin's storage type when implementing an adapter:
 
 ```typescript
-interface Storage {
-	getItem: (key: string) => string | Promise<string | null> | null
-	setItem: (key: string, value: string) => void | Promise<void>
-	removeItem: (key: string) => void | Promise<void>
+import type { Storage } from 'pinia-plugin-state-persistence'
+
+const values = new Map<string, string | number | boolean | object | null>()
+const storage: Storage = {
+	getItem: key => values.get(key) ?? null,
+	setItem: (key, value) => { values.set(key, value) },
+	removeItem: (key) => { values.delete(key) },
 }
 ```
 
+Methods can return values synchronously or through a promise. Returning `null` from `getItem` means there is no saved entry.
+
 </details>
+
+## Storage compatibility and `deepCopy`
+
+With `deepCopy: false`, the plugin writes the string returned by `serialize`. With `deepCopy: true`, it also calls `deserialize` to create a detached value. Native `localStorage` and `sessionStorage` keep a serialized string because Web Storage accepts strings only.
+
+Custom adapters receive the deserialized value in deep-copy mode, including objects, arrays, numbers, booleans, and strings. Use an object-capable backend for these adapters. The plugin cannot infer whether a wrapper around Web Storage accepts raw objects. Keep `deepCopy: false` for string-only wrappers, or implement raw-value encoding and decoding inside the adapter.
+
+The default codecs are `JSON.stringify` and `JSON.parse`. Deep-copy mode does not make circular references, functions, or BigInt JSON-compatible. Supply suitable codecs for unsupported values. Object-capable adapters can use their own cloning and value-preservation behavior.

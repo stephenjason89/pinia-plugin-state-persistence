@@ -12,6 +12,10 @@ When using asynchronous storage, the store initialization happens before the dat
 
 If you change a top-level state property before restoration finishes, your change is kept and the stored value for that property is ignored.
 
+If a value cannot be compared safely during asynchronous restoration, its live value is kept instead of applying the stored value. This includes circular values, nested Maps, Sets, or regular expressions, objects containing BigInt, and Map/Set entries that JSON cannot represent distinctly. Top-level BigInt, Map, Set, and regular expression values can be compared. Custom codecs are still required to persist values the default JSON codecs cannot handle.
+
+Await `$onRestore()` before resetting the store or logging out. Resetting an unchanged default while hydration is pending may not register a value change, so persisted data could otherwise be restored afterward. Disposing the store invalidates pending hydration and stops future automatic persistence subscriptions.
+
 ### Example Usage
 
 ```typescript
@@ -60,7 +64,7 @@ function saveData() {
 	store.$onPersist(() => {
 		// Safe to show success or navigate
 		showSuccessMessage('Saved!')
-	})
+	}).catch(showSaveError)
 }
 ```
 
@@ -79,6 +83,10 @@ const store = useStore()
 // Restore the state from storage manually
 store.$restore()
 ```
+
+With `overwrite: true`, restored nested values replace existing nested values. Mapped keys and the fallback storage bucket are combined into one snapshot before replacement. Option stores delete top-level fields omitted from that snapshot. Setup stores keep omitted declared refs connected and clear their values to `undefined`, which JSON serialization omits. Compatible reactive object, array, Map, and Set roots are updated in place, and omitted roots are cleared while retaining their container type. Incompatible saved root types are skipped so setup actions keep their existing reactive connections.
+
+A missing storage entry keeps defaults. An actual saved empty object clears existing values in overwrite mode. Changes made while asynchronous hydration is pending remain protected.
 
 Use this functionality sparingly for specific cases to ensure the store stays in sync with storage.
 
@@ -99,6 +107,22 @@ store.$persist()
 ```
 
 This is particularly helpful in batch updates or custom save operations that bypass normal mutation flows.
+
+### Persistence errors
+
+$persist() returns a rejected promise when persistence fails, including synchronous storage or codec failures. `$onPersist()` rejects when the latest persistence attempt failed. Automatic mutation persistence handles failures without aborting your action, so await `$onPersist()` before reporting that changes were saved.
+
+```typescript
+try {
+	await store.$persist()
+	showSuccessMessage('Saved!')
+}
+catch (error) {
+	showSaveError(error)
+}
+```
+
+A callback passed to `$onPersist()` runs only after successful persistence. Handle its returned promise as well: a failed write or an exception thrown by the callback rejects that promise.
 
 ## Batch updates with `$patch`
 
@@ -150,6 +174,27 @@ export const useExampleStore = defineStore('example', {
 - Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
+
+### Typed codecs for mapped values
+
+A mapped configuration calls `serialize` for the fallback partial state object and for each mapped property. Its codec must accept both inputs. The second `PersistOptions` type parameter describes this input while preserving the default whole-state callback types.
+
+```typescript
+import type { PersistOptions } from 'pinia-plugin-state-persistence'
+
+interface CounterState {
+	count: number
+	label: string
+}
+
+const persist: PersistOptions<CounterState, Partial<CounterState> | CounterState[keyof CounterState]> = {
+	key: { count: 'counter-count' },
+	serialize: value => JSON.stringify(value),
+	deserialize: value => JSON.parse(value),
+}
+```
+
+The deserializer can return a partial state object or a property value. A global custom codec used by a mapped configuration must also handle both kinds of input; the default global callback type remains the whole-state type for compatibility.
 
 ## Multiple Storage Support
 
