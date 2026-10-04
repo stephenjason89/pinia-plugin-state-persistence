@@ -91,6 +91,25 @@ describe('runtime regressions', () => {
 		await store.$onRestore()
 		expect(store.$state).toEqual({ count: 99, label: 'later' })
 	})
+	it('reads all synchronous configurations before restoring without storage feedback', () => {
+		const first = memoryStorage({ first: '{"count":1}' })
+		const second = memoryStorage({ second: '{"count":2}' })
+		install()
+		const store = makeStore(() => ({ count: 0 }), [
+			{ key: 'first', storage: first as Storage },
+			{ key: 'second', storage: second as Storage },
+		])
+		expect(store.count).toBe(2)
+		expect(first.data.get('first')).toBe('{"count":1}')
+		expect(second.data.get('second')).toBe('{"count":2}')
+
+		first.data.set('first', '{"count":10}')
+		second.data.set('second', '{"count":20}')
+		expect(store.$restore()).toBeUndefined()
+		expect(store.count).toBe(20)
+		expect(first.data.get('first')).toBe('{"count":10}')
+		expect(second.data.get('second')).toBe('{"count":20}')
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
@@ -99,6 +118,22 @@ describe('runtime regressions', () => {
 		const replacement = useStore()
 		first.$dispose()
 		expect(useStore() === replacement).toBe(true)
+	})
+	it('does not apply a restoration batch superseded by a newer manual restore', async () => {
+		const initial = deferred<string>()
+		const manual = deferred<string>()
+		let reads = 0
+		install({ ...memoryStorage(), getItem: () => ++reads === 1 ? initial.promise : manual.promise })
+		const store = makeStore(() => ({ count: 0 }), true)
+		const initialRestore = store.$onRestore()
+		const manualRestore = store.$restore()
+
+		initial.resolve('{"count":1}')
+		await initialRestore
+		expect(store.count).toBe(0)
+		manual.resolve('{"count":2}')
+		await manualRestore
+		expect(store.count).toBe(2)
 	})
 
 	it('preserves a user edit back to defaults between async configurations', async () => {
