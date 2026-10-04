@@ -1,3 +1,9 @@
+## [1.12.5](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.4...v1.12.5) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* ignore restoration after store disposal ([1cfcc24](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/1cfcc24e924e142e075ec7cca7ecbec51a792b31))
+
 ## [1.12.4](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.3...v1.12.4) (2026-10-04)
 
 ### 🐛 Bug Fixes
