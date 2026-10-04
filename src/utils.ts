@@ -36,7 +36,10 @@ export function setNestedValue(obj: any, path: string, value: any, source?: any)
 			: existing && typeof existing === 'object'
 				? existing === source ? Array.isArray(existing) ? [...existing] : { ...existing } : existing
 				: Array.isArray(source) ? [] : {}
-		Object.defineProperty(acc, key, { value: next, writable: true, enumerable: true, configurable: true })
+		if (Array.isArray(acc) && key === 'length')
+			acc.length = next
+		else
+			Object.defineProperty(acc, key, { value: next, writable: true, enumerable: true, configurable: true })
 		return acc[key]
 	}, obj)
 }
