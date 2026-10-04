@@ -1,3 +1,9 @@
+## [1.12.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.0...v1.12.1) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve special own persistence properties ([5bbace2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5bbace2bd316df514fdd58551f37348fc5786b69))
+
 ## [1.12.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.11.0...v1.12.0) (2026-10-02)
 
 ### 🚀 Features
