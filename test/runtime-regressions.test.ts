@@ -139,6 +139,32 @@ describe('runtime regressions', () => {
 			expect(storage.data.get('optional')).toBe('10')
 		}
 	})
+	it('keeps store creation working when the localStorage getter is denied', () => {
+		const previous = Object.getOwnPropertyDescriptor(globalThis, 'window')
+		Object.defineProperty(globalThis, 'window', {
+			configurable: true,
+			value: Object.defineProperty({}, 'localStorage', {
+				get: () => { throw new Error('SecurityError') },
+			}),
+		})
+		try {
+			install()
+			expect(() => makeStore(() => ({ count: 0 }), true)).not.toThrow()
+		}
+		finally {
+			if (previous)
+				Object.defineProperty(globalThis, 'window', previous)
+			else
+				Reflect.deleteProperty(globalThis, 'window')
+		}
+	})
+
+	it('accepts null-prototype storage adapters', () => {
+		const storage = Object.assign(Object.create(null), memoryStorage({ count: '{"count":10}' })) as Storage
+		install(storage)
+		const store = makeStore(() => ({ count: 0 }), { key: 'count' })
+		expect(store.count).toBe(10)
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
