@@ -27,11 +27,15 @@ export function getNestedValue(obj: any, path: string) {
 }
 
 // Set nested value in object using dot notation
-export function setNestedValue(obj: any, path: string, value: any) {
+export function setNestedValue(obj: any, path: string, value: any, source?: any) {
 	path.split('.').reduce((acc, key, idx, arr) => {
+		source = source != null && Object.hasOwn(source, key) ? source[key] : undefined
+		const existing = Object.hasOwn(acc, key) ? acc[key] : undefined
 		const next = idx === arr.length - 1
 			? value
-			: Object.hasOwn(acc, key) && acc[key] && typeof acc[key] === 'object' ? acc[key] : {}
+			: existing && typeof existing === 'object'
+				? existing === source ? Array.isArray(existing) ? [...existing] : { ...existing } : existing
+				: Array.isArray(source) ? [] : {}
 		Object.defineProperty(acc, key, { value: next, writable: true, enumerable: true, configurable: true })
 		return acc[key]
 	}, obj)
@@ -45,7 +49,7 @@ export function applyStateFilter(state: Record<string, any>,	include: string | s
 		? includeArray.reduce((acc, path) => {
 				const value = getNestedValue(state, path)
 				if (value !== undefined)
-					setNestedValue(acc, path, value)
+					setNestedValue(acc, path, value, state)
 				return acc
 			}, {})
 		: { ...state }

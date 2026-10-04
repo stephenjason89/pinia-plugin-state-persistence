@@ -177,3 +177,42 @@ describe('own-property persistence', () => {
 		expect(store.$state.constructor as unknown).toBe('saved')
 	})
 })
+
+describe('included path shape', () => {
+	it('preserves nested arrays when including individual array item fields', () => {
+		const state = { items: [{ name: 'a', secret: 'first' }, { name: 'b', secret: 'second' }] }
+		const filtered = applyStateFilter(state, ['items.0.name', 'items.1.name'], null)
+		expect(Array.isArray(filtered.items)).toBe(true)
+		expect(filtered).toEqual({ items: [{ name: 'a' }, { name: 'b' }] })
+		expect(state.items[0].secret).toBe('first')
+	})
+
+	it('does not write into live state when parent and child includes overlap', () => {
+		for (const include of [['user', 'user.name'], ['user.name', 'user']]) {
+			let writes = 0
+			const user = new Proxy({ name: 'a', password: 'secret' }, {
+				defineProperty(target, property, descriptor) {
+					writes++
+					return Reflect.defineProperty(target, property, descriptor)
+				},
+			})
+			expect(applyStateFilter({ user }, include, 'user.password')).toEqual({ user: { name: 'a' } })
+			expect(writes).toBe(0)
+			expect(user.password).toBe('secret')
+		}
+	})
+
+	it('round-trips included array item fields through Pinia without changing array type', () => {
+		const storage = memoryStorage()
+		activate(storage)
+		const first = makeStore(() => ({ items: [{ name: 'a', secret: 'first' }, { name: 'b', secret: 'second' }] }), { include: ['items.0.name', 'items.1.name'] })
+		first.$persist()
+		expect(JSON.parse(storage.data.get(first.$id)!)).toEqual({ items: [{ name: 'a' }, { name: 'b' }] })
+		expect(first.items[0].secret).toBe('first')
+
+		activate(storage)
+		const restored = makeStore(() => ({ items: [] as Array<{ name: string }> }), {}, first.$id)
+		expect(Array.isArray(restored.items)).toBe(true)
+		expect(restored.items).toEqual([{ name: 'a' }, { name: 'b' }])
+	})
+})
