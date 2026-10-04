@@ -1,7 +1,7 @@
 import type { PersistOptions, Storage } from '../src/types'
 import { describe, expect, it } from 'bun:test'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
-import { createApp } from 'vue'
+import { createApp, reactive, ref } from 'vue'
 import { createStatePersistence } from '../src/index'
 
 function deferred<T>() {
@@ -268,6 +268,61 @@ describe('runtime regressions', () => {
 		store.$persist()
 		await expect(store.$onPersist()).resolves.toBeUndefined()
 	})
+	it('overwrites option-store snapshots including empty snapshots', () => {
+		for (const saved of ['{"count":10,"nested":{"saved":true}}', '{}']) {
+			install(memoryStorage({ snapshot: saved }) as Storage)
+			const store = makeStore(() => ({ count: 0, obsolete: 'default', nested: { old: true } }), {
+				key: 'snapshot',
+				overwrite: true,
+			})
+			expect(store.$state).toEqual(JSON.parse(saved))
+		}
+	})
+
+	it('keeps setup refs connected when overwriting snapshots', () => {
+		const storage = memoryStorage({ snapshot: '{"count":10,"nested":{"saved":true}}' })
+		install(storage as Storage)
+		const useStore = defineStore(`runtime-${++id}`, () => ({
+			count: ref(0),
+			omitted: ref<string | undefined>('default'),
+			nested: ref<Record<string, boolean>>({ old: true }),
+		}), { persist: { key: 'snapshot', overwrite: true } })
+		const store = useStore()
+		expect(store.$state).toEqual({ count: 10, omitted: undefined, nested: { saved: true } })
+		store.omitted = 'edited'
+		store.count = 11
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 11, omitted: 'edited', nested: { saved: true } })
+	})
+
+	it('preserves edited and newly added fields omitted by an async overwrite snapshot', async () => {
+		const read = deferred<string>()
+		install({ ...memoryStorage(), getItem: () => read.promise })
+		const store = makeStore(() => ({ count: 0, edited: 'default', obsolete: true }), { overwrite: true })
+		store.edited = 'user'
+		store.$patch({ added: 99 } as any)
+		read.resolve('{"count":10}')
+		await store.$onRestore()
+		expect(store.$state).toEqual({ count: 10, edited: 'user', added: 99 })
+	})
+
+	it('keeps defaults when an overwrite storage snapshot is missing', () => {
+		install(memoryStorage() as Storage)
+		const store = makeStore(() => ({ count: 0 }), { overwrite: true })
+		expect(store.$state).toEqual({ count: 0 })
+	})
+	it('applies later overwrite configurations after fields removed by an earlier restore', async () => {
+		const earlier = deferred<string>()
+		const later = deferred<string>()
+		install()
+		const store = makeStore(() => ({ first: 0, second: 0 }), [
+			{ storage: { ...memoryStorage(), getItem: () => earlier.promise }, overwrite: true },
+			{ storage: { ...memoryStorage(), getItem: () => later.promise }, overwrite: true },
+		])
+		later.resolve('{"second":2}')
+		earlier.resolve('{"first":1}')
+		await store.$onRestore()
+		expect(store.$state).toEqual({ second: 2 })
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
@@ -301,6 +356,73 @@ describe('runtime regressions', () => {
 				throw new Error('callback failed')
 			})).rejects.toThrow('callback failed')
 		}
+	})
+	it('keeps setup reactive objects and arrays connected when provided or omitted by overwrite', () => {
+		for (const provided of [false, true]) {
+			const snapshot = provided ? '{"object":{"count":10},"array":[10]}' : '{}'
+			const storage = memoryStorage({ snapshot })
+			install(storage as Storage)
+			const object = reactive<{ count?: number }>({ count: 0 })
+			const array = reactive([0])
+			const store = defineStore(`runtime-${++id}`, () => ({ object, array }), {
+				persist: { key: 'snapshot', overwrite: true },
+			})()
+			expect(store.$state).toEqual({ object: provided ? { count: 10 } : {}, array: provided ? [10] : [] })
+			expect(object).toEqual(provided ? { count: 10 } : {})
+			expect(array).toEqual(provided ? [10] : [])
+			object.count = 20
+			array.push(20)
+			expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ object: { count: 20 }, array: provided ? [10, 20] : [20] })
+		}
+	})
+	it('keeps setup reactive maps and sets connected with a custom codec', () => {
+		for (const provided of [false, true]) {
+			const storage = memoryStorage({ snapshot: provided ? '{"map":[["saved",10]],"set":["saved"]}' : {} })
+			install(storage as Storage)
+			const map = reactive(new Map([['default', 0]]))
+			const set = reactive(new Set(['default']))
+			const store = defineStore(`runtime-${++id}`, () => ({ map, set }), {
+				persist: {
+					key: 'snapshot',
+					overwrite: true,
+					serialize: state => JSON.stringify({ map: [...state.map!], set: [...state.set!] }),
+					deserialize: (value) => {
+						const state = JSON.parse(value)
+						return { map: new Map<string, number>(state.map), set: new Set<string>(state.set) }
+					},
+				},
+			})()
+			expect([...map]).toEqual(provided ? [['saved', 10]] : [])
+			expect([...set]).toEqual(provided ? ['saved'] : [])
+			map.set('edited', 20)
+			set.add('edited')
+			expect(store.$state.map === map).toBe(true)
+			expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ map: provided ? [['saved', 10], ['edited', 20]] : [['edited', 20]], set: provided ? ['saved', 'edited'] : ['edited'] })
+		}
+	})
+	it('keeps newly restored setup object fields reactive after a manual overwrite', () => {
+		const storage = memoryStorage({ snapshot: '{}' })
+		install(storage as Storage)
+		const object = reactive<{ count?: number }>({ count: 0 })
+		const store = defineStore(`runtime-${++id}`, () => ({ object }), {
+			persist: { key: 'snapshot', overwrite: true },
+		})()
+		storage.data.set('snapshot', '{"object":{"count":10}}')
+		store.$restore()
+		object.count = 20
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ object: { count: 20 } })
+	})
+	it('keeps setup reactive containers connected when saved root types are incompatible', () => {
+		const storage = memoryStorage({ snapshot: '{"object":null,"array":{}}' })
+		install(storage as Storage)
+		const object = reactive({ count: 0 })
+		const array = reactive([0])
+		const store = defineStore(`runtime-${++id}`, () => ({ object, array }), {
+			persist: { key: 'snapshot', overwrite: true },
+		})()
+		expect(store.$state).toEqual({ object: { count: 0 }, array: [0] })
+		object.count = 20
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ object: { count: 20 }, array: [0] })
 	})
 
 	it('preserves a user edit back to defaults between async configurations', async () => {
