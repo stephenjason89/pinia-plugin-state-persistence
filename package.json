@@ -41,6 +41,7 @@
 		"lint": "eslint .",
 		"typecheck": "tsc --noEmit",
 		"test": "bun test",
+		"test:node": "node --test test/*.node.mjs",
 		"test:types": "tsc --project tsconfig.test-types.json",
 		"docs:dev": "vitepress dev docs",
 		"docs:build": "vitepress build docs",
