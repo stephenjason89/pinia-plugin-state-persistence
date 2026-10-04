@@ -3,6 +3,17 @@
 ### 🐛 Bug Fixes
 
 * remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
+* tolerate inaccessible browser storage and plain adapters ([7853154](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/7853154d950991f823fc6d2c685b5c73c3a3f83f))
+
+### 📦 Chores
+
+* **release:** 1.12.8 [skip ci] ([349e977](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/349e977e6a488cb5c18be4acb25c7c5ff4cf2dc6))
+
+## [1.12.8](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.7...v1.12.8) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* remove undefined mapped storage values ([4f7653b](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/4f7653be73de9c1d6c9942ef91c9e67a49dc69ea))
 
 ## [1.12.7](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.6...v1.12.7) (2026-10-04)
 
