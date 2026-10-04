@@ -110,6 +110,35 @@ describe('runtime regressions', () => {
 		expect(first.data.get('first')).toBe('{"count":10}')
 		expect(second.data.get('second')).toBe('{"count":20}')
 	})
+	it('removes mapped storage values when the original field becomes undefined', async () => {
+		const storage = memoryStorage({ optional: '10' })
+		install(storage as Storage)
+		const store = makeStore(() => ({ optional: 0 as number | undefined }), { key: { optional: 'optional' } })
+		store.optional = undefined
+		await store.$onPersist()
+		expect(storage.data.has('optional')).toBe(false)
+
+		install(storage as Storage)
+		const replacement = defineStore(store.$id, {
+			state: () => ({ optional: 0 as number | undefined }),
+			persist: { key: { optional: 'optional' } },
+		})()
+		expect(replacement.optional).toBe(0)
+	})
+
+	it('does not remove mapped values intentionally omitted by include or exclude', () => {
+		for (const selection of [{ include: 'other' }, { exclude: 'optional' }]) {
+			const storage = memoryStorage({ optional: '10' })
+			install(storage as Storage)
+			const store = makeStore(() => ({ optional: undefined as number | undefined, other: 0 }), {
+				key: { optional: 'optional' },
+				...selection,
+			})
+			store.optional = undefined
+			store.other++
+			expect(storage.data.get('optional')).toBe('10')
+		}
+	})
 	it('does not remove the replacement when a disposed store is disposed again', () => {
 		install(memoryStorage() as Storage)
 		const useStore = defineStore(`runtime-${++id}`, { state: () => ({ count: 0 }), persist: true })
