@@ -45,5 +45,8 @@ jobs:
       - name: Check packaged ESM and CommonJS types
         run: bun run test:package-types
 
+      - name: Test restoration on Node.js
+        run: bun run test:node
+
       - name: Build documentation
         run: bun run docs:build
