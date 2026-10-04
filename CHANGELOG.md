@@ -1,3 +1,13 @@
+## [1.12.12](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.11...v1.12.12) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* overwrite snapshots without disconnecting setup state ([db585a1](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/db585a12e8eb43309f4643f69a27abe28dcc1cbd))
+
+### 📚 Documentation
+
+* recommend patch batching for persistence workloads ([7d3b05f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/7d3b05ff1aae45aa4786e1b909f86f95c7c7b077))
+
 ## [1.12.11](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.10...v1.12.11) (2026-10-04)
 
 ### 🐛 Bug Fixes
