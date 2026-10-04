@@ -1,3 +1,22 @@
+## [1.12.3](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.2...v1.12.3) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* **types:** describe mapped codecs and raw storage values ([423349a](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/423349ab57800f8a4d65085c20060d59bc018b54))
+
+## [1.12.2](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.1...v1.12.2) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve array shapes in included paths ([9ec943f](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/9ec943f1a8a040fec99b58186ddb12e6e92300f0))
+* protect unsupported state during async restore ([3a03b27](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/3a03b276d0d5744985c0662b1b9ee3a784baa287))
+
+## [1.12.1](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.0...v1.12.1) (2026-10-04)
+
+### 🐛 Bug Fixes
+
+* preserve special own persistence properties ([5bbace2](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/5bbace2bd316df514fdd58551f37348fc5786b69))
+
 ## [1.12.0](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.11.0...v1.12.0) (2026-10-02)
 
 ### 🚀 Features
