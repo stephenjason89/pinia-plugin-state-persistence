@@ -38,6 +38,8 @@
 		"dist"
 	],
 	"scripts": {
+		"lint": "eslint .",
+		"typecheck": "tsc --noEmit",
 		"test": "bun test",
 		"test:types": "tsc --project tsconfig.test-types.json",
 		"docs:dev": "vitepress dev docs",
