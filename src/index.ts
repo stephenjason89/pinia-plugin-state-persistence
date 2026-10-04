@@ -88,7 +88,6 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
 
-			let restorationPromise: Promise<void> | null = null
 			let persistencePromise: Promise<void> | null = null
 
 			const loadState = () => {
@@ -157,7 +156,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				const stateBeforeRestore = Object.fromEntries(
 					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
 				)
-				restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
+				const restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
 					const state: Record<string, any> = { ...storedState, ...storedValues }
 					for (const stateKey of Object.keys(state)) {
 						const currentFingerprint = Object.hasOwn(context.store.$state, stateKey) ? fingerprint(context.store.$state[stateKey]) : undefined
