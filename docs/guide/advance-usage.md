@@ -126,6 +126,10 @@ A callback passed to `$onPersist()` runs only after successful persistence. Hand
 
 For asynchronous storage, consecutive queued writes or removals for the same storage key keep only the newest operation that has not started. An operation already running completes normally. If a queued persistence attempt is replaced, its `$persist()` promise and any `$onPersist()` observers wait for the replacement and report its success or failure. Reads are never replaced, and writes on either side of a queued read remain separate so the read observes the preceding write.
 
+If `getItem` throws or rejects, the plugin preserves that storage key until a later `$restore()` reads it successfully. Automatic persistence and `$persist()` skip both writes and removals for the unreadable key, including operations queued before the read failed. Other storage keys continue to persist. With `overwrite: true`, a failed mapped read keeps the corresponding state field, and a failed whole-store or fallback read keeps fields omitted from the available snapshot.
+
+Skipped operations resolve successfully, so `$persist()` and `$onPersist()` may complete without saving unreadable keys. A `$onPersist()` callback still runs when all remaining writes succeed. Read failures are always logged with `console.error`; enable `debug` to also log each skipped operation. After the storage adapter recovers, call and await `$restore()` before retrying persistence. A successful read clears the protection even when the entry is missing or its value cannot be deserialized. Values that fail to deserialize retain the existing behavior: the next persistence attempt replaces or removes them.
+
 ## Batch updates with `$patch`
 
 Use Pinia's existing `$patch` function when one operation changes several state values. The plugin subscribes synchronously, so separate direct assignments trigger separate persistence callbacks. A function passed to `$patch` groups those changes into one callback per persistence configuration.
@@ -175,6 +179,8 @@ export const useExampleStore = defineStore('example', {
 
 - Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
+- If an included mapped property has no defined value after filtering, its storage entry is removed. For example, with `key: { a: 'ka' }` and `include: ['a.b']`, deleting `a.b` or setting it to `undefined` removes `ka` when no other included path supplies a value under `a`. A property omitted by `include` or whose top-level key is excluded keeps its existing storage entry. Defined empty objects and `null` values are still persisted.
+- After removal, `overwrite: false` keeps the in-memory defaults on reload instead of restoring the old value. A string storage key saves an empty object when no included values remain.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
 ### Typed codecs for mapped values
