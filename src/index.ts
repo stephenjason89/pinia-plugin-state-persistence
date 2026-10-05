@@ -60,8 +60,11 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		let disposed = false
 		let restorationGeneration = 0
 		let restoring = false
-		let mutationVersion = 0
+		let restorationPending = false
+		let deferredMutation: any = null
 		let restorationBatch: Promise<void> | null = null
+		let explicitPersistence: Promise<void> | null = null
+		let pendingBaseline: Record<string, ReturnType<typeof fingerprint>> | null = null
 		let synchronousRestores: Array<() => void> | null = null
 		let orderedRestoration: Promise<void> | null = null
 		const restoredFingerprints = new Map<string, { present: boolean, value: ReturnType<typeof fingerprint> }>()
@@ -299,13 +302,13 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				const previousRestoration = orderedRestoration
-				if (!tasks.length && !previousRestoration) {
+				if (!tasks.length && !previousRestoration && !pendingBaseline) {
 					const restore = () => restoreState({ ...storedState, ...storedValues })
 					synchronousRestores ? synchronousRestores.push(restore) : restore()
 					return
 				}
 
-				const stateBeforeRestore = Object.fromEntries(
+				const stateBeforeRestore = pendingBaseline ??= Object.fromEntries(
 					Object.entries(context.store.$state).map(([stateKey, value]) => [stateKey, fingerprint(value)]),
 				)
 				const restorationPromise = Promise.all([...tasks, previousRestoration]).then(() => {
@@ -437,11 +440,31 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			return promise
 		}
 
+		const persistAll = (mutation: any) => settleAll(persisters.map(persister =>
+			persister.persistState(mutation, context.store.$state),
+		))
+
+		const waitForRestoration = async () => {
+			let batch: Promise<void> | null
+			do {
+				batch = restorationBatch
+				try {
+					await batch
+				}
+				catch (error) {
+					if (batch === restorationBatch)
+						throw error
+				}
+			} while (batch !== restorationBatch)
+		}
+
 		const restoreAll = () => {
 			const generation = ++restorationGeneration
 			orderedRestoration = null
-			restoredFingerprints.clear()
-			const versionBeforeRestore = mutationVersion
+			if (!restorationPending) {
+				restoredFingerprints.clear()
+				pendingBaseline = null
+			}
 			const restores: Array<() => void> = []
 			synchronousRestores = restores
 			let results: Array<Promise<void> | void>
@@ -452,36 +475,60 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				synchronousRestores = null
 			}
 			restores.forEach(restore => restore())
-			const result = settleAll(results)
-			restorationBatch = isPromise(result)
-				? result.then(() => {
-						if (!disposed && generation === restorationGeneration && mutationVersion !== versionBeforeRestore) {
-							return settleAll(persisters.map(persister =>
-								persister.persistState({ type: 'restore', storeId: context.store.$id }, context.store.$state),
-							))
-						}
-					})
-				: null
+			const pending = results.filter(isPromise)
+			restorationPending = pending.length > 0
+			const flushDeferredPersistence = () => {
+				if (generation !== restorationGeneration)
+					return
+				restorationPending = false
+				pendingBaseline = null
+				const mutation = deferredMutation
+				deferredMutation = null
+				if (!disposed && mutation !== null)
+					persistAll(mutation)?.catch(() => {})
+			}
+			restorationBatch = restorationPending
+				? Promise.allSettled(pending).then((settled) => {
+						const failure = settled.find(result => result.status === 'rejected')
+						if (failure)
+							throw failure.reason
+					}).finally(flushDeferredPersistence)
+				: (flushDeferredPersistence(), null)
 			restorationBatch?.catch(() => {})
 			return restorationBatch ?? undefined
 		}
 		context.store.$restore = restoreAll
 		context.store.$persist = () => {
-			const result = settleAll(persisters.map(persister =>
-				persister.persistState({ type: 'persist', storeId: context.store.$id }, context.store.$state),
-			))
-			result?.catch(() => {})
+			const persist = (): Promise<void> | void => restorationPending
+				? waitForRestoration().then(() => {
+						if (!disposed)
+							return persist()
+					})
+				: persistAll({ type: 'persist', storeId: context.store.$id })
+			const result = persist()
+			explicitPersistence = result ?? null
+			result?.finally(() => {
+				if (explicitPersistence === result)
+					explicitPersistence = null
+			}).catch(() => {})
 			return result
 		}
 		context.store.$onRestore = (callback?: () => void) => whenSettled([restorationBatch], callback)
-		context.store.$onPersist = (callback?: () => void) => whenSettled(persisters.map(persister => persister.persistence()), callback)
+		context.store.$onPersist = (callback?: () => void) => whenSettled([
+			explicitPersistence,
+			...(deferredMutation === null
+				? persisters.map(persister => persister.persistence())
+				: [waitForRestoration().then(() => settleAll(persisters.map(persister => persister.persistence())))]),
+		], callback)
 
 		restoreAll()
 		persisters.forEach((persister) => {
 			context.store.$subscribe((mutation, state) => {
 				if (!restoring) {
-					mutationVersion++
-					persister.persistState(mutation, state)
+					if (restorationPending)
+						deferredMutation = mutation
+					else
+						persister.persistState(mutation, state)
 				}
 			}, { flush: 'sync' })
 		})

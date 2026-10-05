@@ -39,6 +39,342 @@ function makeStore<S extends Record<string, any>>(state: () => S, persist: boole
 }
 
 describe('runtime regressions', () => {
+	it('never writes unrestored defaults during pending asynchronous restoration', async () => {
+		const read = deferred<string>()
+		const saved = '{"count":5,"name":"saved","preferences":{"theme":"dark"}}'
+		const storage = memoryStorage({ snapshot: saved })
+		const snapshots: unknown[] = []
+		install({
+			...storage,
+			getItem: () => read.promise,
+			setItem: (key, value) => {
+				snapshots.push(JSON.parse(value as string))
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default', preferences: { theme: 'light' } }), { key: 'snapshot' })
+		store.count = 1
+		store.count = 2
+		read.resolve(saved)
+		await store.$onRestore()
+
+		expect(snapshots).toEqual([{ count: 2, name: 'saved', preferences: { theme: 'dark' } }])
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual(store.$state)
+	})
+
+	it('passes only the latest real deferred mutation to filters that reject non-direct mutations', async () => {
+		const read = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		const mutations: string[] = []
+		install({ ...storage, getItem: () => read.promise })
+		const store = makeStore(() => ({ count: 0, name: 'default' }), {
+			key: 'snapshot',
+			filter: (mutation) => {
+				mutations.push(mutation.type)
+				return mutation.type === 'direct'
+			},
+		})
+		store.$patch({ count: 1 })
+		store.count = 2
+		read.resolve(saved)
+		await store.$onRestore()
+
+		expect(mutations).toEqual(['direct'])
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 2, name: 'saved' })
+	})
+
+	it('drops deferred automatic and explicit writes when disposed during restoration', async () => {
+		const read = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		install({ ...storage, getItem: () => read.promise })
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		store.count++
+		const persistence = store.$persist()
+		const observed = store.$onPersist()
+		store.$dispose()
+		read.resolve(saved)
+		await Promise.all([store.$onRestore(), persistence, observed])
+
+		expect(storage.data.get('snapshot')).toBe(saved)
+		expect(store.$state).toEqual({ count: 1, name: 'default' })
+	})
+
+	it('carries deferred persistence and its observer across a superseding restoration', async () => {
+		const initial = deferred<string>()
+		const manual = deferred<string>()
+		const saved = '{"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		const snapshots: unknown[] = []
+		let reads = 0
+		install({
+			...storage,
+			getItem: () => ++reads === 1 ? initial.promise : manual.promise,
+			setItem: (key, value) => {
+				snapshots.push(JSON.parse(value as string))
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		store.count++
+		let persisted = false
+		const observed = store.$onPersist(() => {
+			persisted = true
+		})
+		const initialRestore = store.$onRestore()
+		const manualRestore = store.$restore()
+		initial.resolve(saved)
+		await initialRestore
+
+		expect(storage.data.get('snapshot')).toBe(saved)
+		expect(persisted).toBe(false)
+		manual.resolve(storage.data.get('snapshot') as string)
+		await Promise.all([manualRestore, observed])
+		expect(snapshots).toEqual([{ count: 1, name: 'saved' }])
+		expect(persisted).toBe(true)
+	})
+
+	it('keeps edits made during a pending restoration when another restoration supersedes it', async () => {
+		const initial = deferred<string>()
+		const manual = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		let reads = 0
+		install({ ...storage, getItem: () => ++reads === 1 ? initial.promise : manual.promise })
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		store.count = 1
+		const observed = store.$onPersist()
+		const manualRestore = store.$restore()
+		initial.resolve(saved)
+		manual.resolve(saved)
+		await Promise.all([manualRestore, observed])
+
+		expect(store.$state).toEqual({ count: 1, name: 'saved' })
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 1, name: 'saved' })
+	})
+
+	it('keeps edits when a restoration supersedes a pending mixed synchronous and asynchronous restoration', async () => {
+		const initial = deferred<string>()
+		const manual = deferred<string>()
+		const synchronous = memoryStorage({ first: '{"count":5}' })
+		const asynchronous = memoryStorage({ second: '{"name":"saved"}' })
+		let reads = 0
+		install()
+		const store = makeStore(() => ({ count: 0, name: 'default' }), [
+			{ key: 'first', storage: synchronous },
+			{ key: 'second', storage: { ...asynchronous, getItem: () => ++reads === 1 ? initial.promise : manual.promise } },
+		])
+		store.count = 10
+		const observed = store.$onPersist()
+		const manualRestore = store.$restore()
+		initial.resolve('{"name":"saved"}')
+		manual.resolve('{"name":"saved"}')
+		await Promise.all([manualRestore, observed])
+
+		expect(store.$state).toEqual({ count: 10, name: 'saved' })
+		expect(JSON.parse(synchronous.data.get('first') as string)).toEqual({ count: 10, name: 'saved' })
+		expect(JSON.parse(asynchronous.data.get('second') as string)).toEqual({ count: 10, name: 'saved' })
+	})
+
+	it('still attempts explicit persistence when the deferred automatic write fails', async () => {
+		const read = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		let failures = 1
+		install({
+			...storage,
+			getItem: () => read.promise,
+			setItem: async (key, value) => {
+				if (failures-- > 0)
+					throw new Error('transient')
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		store.count = 9
+		const explicit = store.$persist()
+		read.resolve(saved)
+
+		await expect(store.$onRestore()).resolves.toBeUndefined()
+		await expect(explicit).resolves.toBeUndefined()
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 9, name: 'saved' })
+	})
+
+	it('keeps explicit persistence deferred when an $onRestore callback starts another restoration', async () => {
+		const first = deferred<string | null>()
+		const second = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage()
+		const snapshots: unknown[] = []
+		let reads = 0
+		install({
+			...storage,
+			getItem: () => ++reads === 1 ? first.promise : second.promise,
+			setItem: (key, value) => {
+				snapshots.push(JSON.parse(value as string))
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		let nextRestore: Promise<void> | void
+		const initialRestore = store.$onRestore(() => {
+			storage.data.set('snapshot', saved)
+			nextRestore = store.$restore()
+		})
+		const explicit = store.$persist()
+		first.resolve(null)
+		await initialRestore
+		expect(snapshots).toEqual([])
+		second.resolve(saved)
+		await Promise.all([explicit, nextRestore])
+
+		expect(snapshots).toEqual([{ count: 5, name: 'saved' }])
+		expect(storage.data.get('snapshot')).toBe(saved)
+	})
+
+	it('keeps $onPersist pending until the deferred write completes', async () => {
+		const read = deferred<string>()
+		const write = deferred<void>()
+		const started = deferred<void>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		install({
+			...storage,
+			getItem: () => read.promise,
+			setItem: async (key, value) => {
+				started.resolve()
+				await write.promise
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), {
+			key: 'snapshot',
+			filter: (_mutation, state) => state.name === 'saved',
+		})
+		store.count++
+		let persisted = false
+		const observed = store.$onPersist(() => {
+			persisted = true
+		})
+		read.resolve(saved)
+		await started.promise
+
+		expect(persisted).toBe(false)
+		expect(storage.data.get('snapshot')).toBe(saved)
+		write.resolve()
+		await observed
+		expect(persisted).toBe(true)
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 1, name: 'saved' })
+	})
+
+	it('defers explicit persistence and its observer until restoration and the write finish', async () => {
+		const read = deferred<string>()
+		const write = deferred<void>()
+		const started = deferred<void>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		const snapshots: unknown[] = []
+		install({
+			...storage,
+			getItem: () => read.promise,
+			setItem: async (key, value) => {
+				snapshots.push(JSON.parse(value as string))
+				started.resolve()
+				await write.promise
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		const persistence = store.$persist()
+		let persisted = false
+		const observed = store.$onPersist(() => {
+			persisted = true
+		})
+		read.resolve(saved)
+		await started.promise
+
+		expect(snapshots).toEqual([{ count: 5, name: 'saved' }])
+		expect(persisted).toBe(false)
+		write.resolve()
+		await Promise.all([persistence, observed])
+		expect(persisted).toBe(true)
+		expect(storage.data.get('snapshot')).toBe(saved)
+	})
+
+	it('reports deferred explicit write failures through $persist and $onPersist', async () => {
+		for (const asynchronous of [false, true]) {
+			const read = deferred<string>()
+			const saved = '{"name":"saved"}'
+			const failure = new Error('deferred write failed')
+			const snapshots: unknown[] = []
+			install({
+				...memoryStorage({ snapshot: saved }),
+				getItem: () => read.promise,
+				setItem: (_key, value) => {
+					snapshots.push(JSON.parse(value as string))
+					if (asynchronous)
+						return Promise.reject(failure)
+					throw failure
+				},
+			})
+			const store = makeStore(() => ({ name: 'default' }), { key: 'snapshot' })
+			const persistence = store.$persist()
+			const observed = store.$onPersist()
+			read.resolve(saved)
+
+			await expect(Promise.resolve(persistence)).rejects.toThrow(failure.message)
+			await expect(observed).rejects.toThrow(failure.message)
+			expect(snapshots).toEqual([{ name: 'saved' }])
+		}
+	})
+
+	it('defers synchronous configuration writes until every asynchronous configuration restores', async () => {
+		const read = deferred<string>()
+		const synchronous = memoryStorage({ first: '{"count":5}' })
+		const asynchronous = memoryStorage({ second: '{"name":"saved"}' })
+		install()
+		const store = makeStore(() => ({ count: 0, name: 'default' }), [
+			{ key: 'first', storage: synchronous as Storage },
+			{ key: 'second', storage: { ...asynchronous, getItem: () => read.promise } },
+		])
+		store.count = 10
+
+		expect(synchronous.data.get('first')).toBe('{"count":5}')
+		read.resolve('{"name":"saved"}')
+		await store.$onPersist()
+		expect(JSON.parse(synchronous.data.get('first') as string)).toEqual({ count: 10, name: 'saved' })
+		expect(JSON.parse(asynchronous.data.get('second') as string)).toEqual({ count: 10, name: 'saved' })
+	})
+
+	it('reports successful deferred persistence after an earlier explicit write failure', async () => {
+		const read = deferred<string>()
+		const saved = '{"count":5,"name":"saved"}'
+		const storage = memoryStorage({ snapshot: saved })
+		let asynchronous = false
+		let failing = true
+		install({
+			...storage,
+			getItem: key => asynchronous ? read.promise : storage.getItem(key) as string | null,
+			setItem: (key, value) => {
+				if (failing)
+					throw new Error('temporary failure')
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0, name: 'default' }), { key: 'snapshot' })
+		await expect(Promise.resolve(store.$persist())).rejects.toThrow('temporary failure')
+		failing = false
+		asynchronous = true
+		store.$restore()
+		store.count = 10
+		const observed = store.$onPersist()
+		read.resolve(saved)
+
+		await expect(observed).resolves.toBeUndefined()
+		expect(JSON.parse(storage.data.get('snapshot') as string)).toEqual({ count: 10, name: 'saved' })
+	})
+
 	it('ignores whole-store array snapshots without adding numeric state keys', async () => {
 		for (const saved of ['[7,8]', [7, 8]]) {
 			for (const asynchronous of [false, true]) {

@@ -12,9 +12,11 @@ When using asynchronous storage, the store initialization happens before the dat
 
 If you change a top-level state property before restoration finishes, your change is kept and the stored value for that property is ignored.
 
+Automatic persistence waits while asynchronous restoration is pending. Mutations during that window produce one persistence attempt per configuration after the batch settles, using the restored state together with protected live changes. The `filter` receives the latest real Pinia mutation from that window, rather than a synthetic mutation with `type: 'restore'`. A newer `$restore()` keeps the deferred attempt pending until the current batch settles. Fully synchronous storage still restores and persists synchronously.
+
 If a value cannot be compared safely during asynchronous restoration, its live value is kept instead of applying the stored value. This includes circular values, nested Maps, Sets, or regular expressions, objects containing BigInt, and Map/Set entries that JSON cannot represent distinctly. Top-level BigInt, Map, Set, and regular expression values can be compared. Custom codecs are still required to persist values the default JSON codecs cannot handle.
 
-Await `$onRestore()` before resetting the store or logging out. Resetting an unchanged default while hydration is pending may not register a value change, so persisted data could otherwise be restored afterward. Disposing the store invalidates pending hydration and stops future automatic persistence subscriptions.
+Await `$onRestore()` before resetting the store or logging out. Resetting an unchanged default while hydration is pending may not register a value change, so persisted data could otherwise be restored afterward. Disposing the store invalidates pending hydration and stops future automatic persistence subscriptions. It also drops automatic writes and explicit `$persist()` calls deferred during that restoration, leaving the stored snapshot intact.
 
 ### Example Usage
 
@@ -44,6 +46,8 @@ onMounted(() => {
 ## `$onPersist`
 
 The `$onPersist` method helps you wait for persistence operations to complete, especially when working with asynchronous storage. This is useful when you need to ensure data has been saved before proceeding with operations like showing success messages or navigating away.
+
+When called after a mutation or `$persist()` during pending asynchronous restoration, `$onPersist()` also waits for the deferred persistence attempt and its storage writes. Its callback runs after those writes succeed, or after a deferred attempt is dropped because the store was disposed. A `filter` can still skip the attempt.
 
 ### Example Usage
 
@@ -109,6 +113,8 @@ store.$persist()
 ```
 
 This is particularly helpful in batch updates or custom save operations that bypass normal mutation flows.
+
+During pending asynchronous restoration, `$persist()` waits for the current restoration batch and any automatic deferred write, then persists the restored state with `type: 'persist'` passed to the `filter`. It returns a promise covering that explicit write. Disposing the store before restoration settles drops the deferred call and resolves its promise without writing.
 
 ### Persistence errors
 
