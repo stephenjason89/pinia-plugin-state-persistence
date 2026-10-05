@@ -112,6 +112,301 @@ describe('runtime regressions', () => {
 		}
 	})
 
+	describe('unreadable storage keys', () => {
+		it('logs read failures without debug because later writes are skipped', async () => {
+			const error = spyOn(console, 'error').mockImplementation(() => {})
+			try {
+				const storage = memoryStorage({ snapshot: '{"count":5}' })
+				install({ ...storage, getItem: () => Promise.reject(new Error('transient')) })
+				const store = makeStore(() => ({ count: 0 }), { key: 'snapshot' })
+				await store.$onRestore()
+				store.count = 7
+				await store.$persist()
+
+				expect(storage.data.get('snapshot')).toBe('{"count":5}')
+				expect(error).toHaveBeenCalledTimes(1)
+				expect(String(error.mock.calls[0][0])).toContain(`skipping persistence for 'snapshot'`)
+			}
+			finally {
+				error.mockRestore()
+			}
+		})
+
+		it.each([false, true])('preserves mapped state and skips writes and removals until a successful read, async: %s', async (asynchronous) => {
+			const storage = memoryStorage({ [`runtime-${id + 1}`]: '{"count":5}', tok: '"secret"' })
+			const writes: string[] = []
+			let unreadable = true
+			install({
+				...storage,
+				getItem: (key) => {
+					if (key === 'tok' && unreadable) {
+						const error = new Error('read failed')
+						if (asynchronous)
+							return Promise.reject(error)
+						throw error
+					}
+					const value = storage.getItem(key) as string | null
+					return asynchronous ? Promise.resolve(value) : value
+				},
+				setItem: (key, value) => {
+					writes.push(key)
+					storage.setItem(key, value)
+				},
+				removeItem: (key) => {
+					writes.push(key)
+					storage.removeItem(key)
+				},
+			})
+			const store = makeStore(() => ({ count: 0, token: 'default' as string | undefined, obsolete: true }), {
+				key: { token: 'tok' },
+				overwrite: true,
+			})
+			if (!asynchronous)
+				expect(store.$state).toEqual({ count: 5, token: 'default' })
+			await store.$onRestore()
+			expect(store.$state).toEqual({ count: 5, token: 'default' })
+
+			store.token = 'edited'
+			await store.$onPersist()
+			await store.$persist()
+			expect(storage.data.get('tok')).toBe('"secret"')
+			store.token = undefined
+			store.count++
+			await store.$onPersist()
+			const skipped = store.$persist()
+			if (!asynchronous)
+				expect(skipped).toBeUndefined()
+			await skipped
+			let called = false
+			await store.$onPersist(() => {
+				called = true
+			})
+			expect(called).toBe(true)
+			expect(writes).not.toContain('tok')
+			expect(storage.data.get('tok')).toBe('"secret"')
+			expect(JSON.parse(storage.data.get(store.$id) as string)).toEqual({ count: 6 })
+			await store.$restore()
+			expect(storage.data.get('tok')).toBe('"secret"')
+
+			unreadable = false
+			const restored = store.$restore()
+			if (!asynchronous)
+				expect(restored).toBeUndefined()
+			await restored
+			expect(store.token).toBe('secret')
+			store.token = 'updated'
+			await store.$onPersist()
+			expect(storage.data.get('tok')).toBe('"updated"')
+			store.token = undefined
+			await store.$onPersist()
+			expect(storage.data.has('tok')).toBe(false)
+		})
+
+		it.each([false, true])('preserves omitted state when the fallback read fails and persists other keys, async: %s', async (asynchronous) => {
+			const storage = memoryStorage({ [`runtime-${id + 1}`]: '{"count":8}', tok: '"secret"' })
+			const writes: string[] = []
+			let unreadable = true
+			install({
+				...storage,
+				getItem: (key) => {
+					if (key !== 'tok' && unreadable) {
+						const error = new Error('fallback read failed')
+						if (asynchronous)
+							return Promise.reject(error)
+						throw error
+					}
+					const value = storage.getItem(key) as string | null
+					return asynchronous ? Promise.resolve(value) : value
+				},
+				setItem: (key, value) => {
+					writes.push(key)
+					storage.setItem(key, value)
+				},
+			})
+			const store = makeStore(() => ({ count: 0, token: 'default', obsolete: true }), {
+				key: { token: 'tok' },
+				overwrite: true,
+			})
+			await store.$onRestore()
+			expect(store.$state).toEqual({ count: 0, token: 'secret', obsolete: true })
+			store.count++
+			store.token = 'updated'
+			await store.$onPersist()
+			await store.$persist()
+			expect(writes).not.toContain(store.$id)
+			expect(storage.data.get(store.$id)).toBe('{"count":8}')
+			expect(storage.data.get('tok')).toBe('"updated"')
+
+			unreadable = false
+			await store.$restore()
+			expect(store.$state).toEqual({ count: 8, token: 'updated' })
+			store.count++
+			await store.$onPersist()
+			expect(storage.data.get(store.$id)).toBe('{"count":9}')
+		})
+
+		it('skips whole-store writes queued before a read rejects and resumes after a missing entry is read successfully', async () => {
+			const read = deferred<string>()
+			const storage = memoryStorage({ snapshot: '{"count":5}' })
+			const writes: string[] = []
+			let unreadable = true
+			install({
+				...storage,
+				getItem: () => unreadable ? read.promise : Promise.resolve(null),
+				setItem: (key, value) => {
+					writes.push(key)
+					storage.setItem(key, value)
+				},
+			})
+			const store = makeStore(() => ({ count: 0, label: 'default' }), { key: 'snapshot', overwrite: true })
+			store.count++
+			const persistence = store.$persist()
+			read.reject(new Error('transient read failure'))
+			await store.$onRestore()
+			await persistence
+			await store.$onPersist()
+			expect(store.$state).toEqual({ count: 1, label: 'default' })
+			expect(storage.data.get('snapshot')).toBe('{"count":5}')
+			expect(writes).toEqual([])
+
+			unreadable = false
+			await store.$restore()
+			store.count++
+			await store.$onPersist()
+			expect(storage.data.get('snapshot')).toBe('{"count":2,"label":"default"}')
+		})
+
+		it.each(['edited', undefined])('skips mapped writes or removals queued before a read rejects, value: %s', async (value) => {
+			const read = deferred<string>()
+			const storage = memoryStorage({ [`runtime-${id + 1}`]: '{"count":5}', tok: '"secret"' })
+			const writes: string[] = []
+			install({
+				...storage,
+				getItem: key => key === 'tok' ? read.promise : storage.getItem(key) as string | null,
+				setItem: (key, value) => {
+					writes.push(key)
+					storage.setItem(key, value)
+				},
+				removeItem: (key) => {
+					writes.push(key)
+					storage.removeItem(key)
+				},
+			})
+			const store = makeStore(() => ({ count: 0, token: 'default' as string | undefined }), {
+				key: { token: 'tok' },
+				overwrite: true,
+			})
+			store.token = value
+			const persistence = store.$persist()
+			read.reject(new Error('mapped read failed'))
+			await store.$onRestore()
+			await persistence
+			await store.$onPersist()
+			expect(store.$state).toEqual({ count: 5, token: value })
+			expect(writes).not.toContain('tok')
+			expect(storage.data.get('tok')).toBe('"secret"')
+		})
+
+		it('scopes unreadable keys to the storage adapter and shares protection across configurations', async () => {
+			const unreadable = memoryStorage({ tok: '"secret"' })
+			const readable = memoryStorage()
+			const writes: string[] = []
+			const storage = {
+				...unreadable,
+				getItem: (key: string) => {
+					if (key === 'tok')
+						throw new Error('read failed')
+					return unreadable.getItem(key) as string | null
+				},
+				setItem: (key: string, value: unknown) => {
+					writes.push(key)
+					unreadable.setItem(key, value)
+				},
+			}
+			install()
+			const store = makeStore(() => ({ token: 'default' }), [
+				{ storage, key: { token: 'tok' } },
+				{ storage, key: 'tok' },
+				{ storage: readable as Storage, key: 'tok' },
+			])
+			store.token = 'edited'
+			await store.$persist()
+			expect(writes).not.toContain('tok')
+			expect(unreadable.data.get('tok')).toBe('"secret"')
+			expect(readable.data.get('tok')).toBe('{"token":"edited"}')
+		})
+
+		it.each([false, true])('keeps setup refs and reactive roots when their mapped reads fail, async: %s', async (asynchronous) => {
+			const storage = memoryStorage({ [`runtime-${id + 1}`]: '{"count":5}', token: '"secret"', profile: '{"name":"saved"}' })
+			install({
+				...storage,
+				getItem: (key) => {
+					if (key === 'token' || key === 'profile') {
+						const error = new Error('mapped read failed')
+						if (asynchronous)
+							return Promise.reject(error)
+						throw error
+					}
+					return storage.getItem(key) as string | null
+				},
+			})
+			const token = ref('default')
+			const profile = reactive({ name: 'default' })
+			const store = defineStore(`runtime-${++id}`, () => ({ count: ref(0), token, profile }), {
+				persist: { key: { token: 'token', profile: 'profile' }, overwrite: true },
+			})()
+			await store.$onRestore()
+			expect(token.value).toBe('default')
+			expect(store.profile).toBe(profile)
+			expect(profile.name).toBe('default')
+			store.count++
+			await store.$persist()
+			expect(storage.data.get('token')).toBe('"secret"')
+			expect(storage.data.get('profile')).toBe('{"name":"saved"}')
+		})
+
+		it.each([false, true])('self-heals values that were read successfully but fail to deserialize, async: %s', async (asynchronous) => {
+			for (const mapped of [false, true]) {
+				const storage = memoryStorage({ [`runtime-${id + 1}`]: mapped ? '{"count":5}' : '{bad', tok: '{bad' })
+				install({
+					...storage,
+					getItem: key => asynchronous ? Promise.resolve(storage.getItem(key) as string | null) : storage.getItem(key) as string | null,
+				})
+				const store = makeStore(() => ({ count: 0, token: 'default' }), {
+					...(mapped ? { key: { token: 'tok' } } : {}),
+					overwrite: true,
+				})
+				await store.$onRestore()
+				store.count++
+				await store.$onPersist()
+				if (mapped)
+					expect(storage.data.has('tok')).toBe(false)
+				else
+					expect(storage.data.get(store.$id)).toBe('{"count":1,"token":"default"}')
+			}
+		})
+
+		it('clears read-failure protection after a successful read with invalid serialized data', async () => {
+			const storage = memoryStorage({ snapshot: '{bad' })
+			let unreadable = true
+			install({
+				...storage,
+				getItem: () => {
+					if (unreadable)
+						throw new Error('read failed')
+					return storage.getItem('snapshot') as string | null
+				},
+			})
+			const store = makeStore(() => ({ count: 0 }), { key: 'snapshot' })
+			await store.$persist()
+			expect(storage.data.get('snapshot')).toBe('{bad')
+			unreadable = false
+			expect(store.$restore()).toBeUndefined()
+			expect(store.$persist()).toBeUndefined()
+			expect(storage.data.get('snapshot')).toBe('{"count":0}')
+		})
+	})
+
 	it('does not let a disposed store restore into its replacement', async () => {
 		const firstRead = deferred<string>()
 		const secondRead = deferred<string>()
@@ -198,6 +493,82 @@ describe('runtime regressions', () => {
 			persist: { key: { optional: 'optional' } },
 		})()
 		expect(replacement.optional).toBe(0)
+	})
+
+	for (const deepCopy of [false, true]) {
+		for (const include of ['a.b', ['a.b']]) {
+			for (const removal of ['delete', 'undefined']) {
+				it(`removes nested mapped values after ${removal} with deepCopy=${deepCopy} and ${typeof include} include`, async () => {
+					const storage = memoryStorage()
+					const state = () => ({ a: { b: 0 as number | null | undefined, x: 9 } })
+					const persist = { key: { a: 'ka' }, include, deepCopy, overwrite: false }
+					install(storage as Storage)
+					const store = makeStore(state, persist)
+					store.a.b = null
+					expect(storage.data.get('ka')).toEqual(deepCopy ? { b: null } : '{"b":null}')
+					store.a.b = 1
+					expect(storage.data.get('ka')).toEqual(deepCopy ? { b: 1 } : '{"b":1}')
+
+					store.$patch((current) => {
+						if (removal === 'delete')
+							Reflect.deleteProperty(current.a, 'b')
+						else
+							current.a.b = undefined
+					})
+					await store.$onPersist()
+					expect(storage.data.has('ka')).toBe(false)
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? {} : '{}')
+					expect(store.a.x).toBe(9)
+
+					install(storage as Storage)
+					const restored = defineStore(store.$id, { state, persist })()
+					await restored.$onRestore()
+					expect(restored.$state).toEqual(state())
+				})
+
+				it(`persists an empty string-key snapshot after ${removal} with deepCopy=${deepCopy} and ${typeof include} include`, () => {
+					const storage = memoryStorage()
+					install(storage as Storage)
+					const store = makeStore(() => ({ a: { b: 0 as number | undefined, x: 9 } }), { include, deepCopy })
+					store.a.b = 1
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? { a: { b: 1 } } : '{"a":{"b":1}}')
+
+					store.$patch((current) => {
+						if (removal === 'delete')
+							Reflect.deleteProperty(current.a, 'b')
+						else
+							current.a.b = undefined
+					})
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? {} : '{}')
+				})
+			}
+		}
+	}
+
+	it('preserves mapped values when nested includes omit them or their root is excluded', () => {
+		for (const selection of [{ include: 'ab.b' }, { include: ['a.b'], exclude: 'a' }]) {
+			const storage = memoryStorage({ ka: '{"b":1}' })
+			install(storage as Storage)
+			const store = makeStore(() => ({ a: { b: 0 as number | undefined }, ab: { b: 2 } }), {
+				key: { a: 'ka' },
+				...selection,
+			})
+			store.a.b = undefined
+			expect(storage.data.get('ka')).toBe('{"b":1}')
+		}
+	})
+
+	it('stores defined empty mapped objects after excluding nested fields', () => {
+		const storage = memoryStorage({ ka: '{"b":1}' })
+		install(storage as Storage)
+		const store = makeStore(() => ({ a: { b: 0 } }), {
+			key: { a: 'ka' },
+			include: ['a.b'],
+			exclude: 'a.b',
+		})
+		store.a.b = 2
+		expect(storage.data.get('ka')).toBe('{}')
+		expect(store.a.b).toBe(2)
 	})
 
 	it('does not remove mapped values intentionally omitted by include or exclude', () => {

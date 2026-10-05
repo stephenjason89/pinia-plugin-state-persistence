@@ -126,6 +126,12 @@ catch (error) {
 
 A callback passed to `$onPersist()` runs only after successful persistence. Handle its returned promise as well: a failed write or an exception thrown by the callback rejects that promise.
 
+For asynchronous storage, consecutive queued writes or removals for the same storage key keep only the newest operation that has not started. An operation already running completes normally. If a queued persistence attempt is replaced, its `$persist()` promise and any `$onPersist()` observers wait for the replacement and report its success or failure. Reads are never replaced, and writes on either side of a queued read remain separate so the read observes the preceding write.
+
+If `getItem` throws or rejects, the plugin preserves that storage key until a later `$restore()` reads it successfully. Automatic persistence and `$persist()` skip both writes and removals for the unreadable key, including operations queued before the read failed. Other storage keys continue to persist. With `overwrite: true`, a failed mapped read keeps the corresponding state field, and a failed whole-store or fallback read keeps fields omitted from the available snapshot.
+
+Skipped operations resolve successfully, so `$persist()` and `$onPersist()` may complete without saving unreadable keys. A `$onPersist()` callback still runs when all remaining writes succeed. Read failures are always logged with `console.error`; enable `debug` to also log each skipped operation. After the storage adapter recovers, call and await `$restore()` before retrying persistence. A successful read clears the protection even when the entry is missing or its value cannot be deserialized. Values that fail to deserialize retain the existing behavior: the next persistence attempt replaces or removes them.
+
 ## Batch updates with `$patch`
 
 Use Pinia's existing `$patch` function when one operation changes several state values. The plugin subscribes synchronously, so separate direct assignments trigger separate persistence callbacks. A function passed to `$patch` groups those changes into one callback per persistence configuration.
@@ -139,14 +145,14 @@ store.$patch((state) => {
 await store.$onPersist()
 ```
 
-A local benchmark used one configuration, one storage key, a state containing 2,000 rows, and a JSON snapshot of about 337 KB. It changed a counter 100 times with an asynchronous adapter.
+A local workload used one configuration, one storage key, a state containing 2,000 rows, and a JSON snapshot of about 337 KB. For 100 direct counter assignments while the first asynchronous write is still pending, the first and final snapshots reach storage. All 100 callbacks still filter and serialize the state.
 
-| Update pattern | Storage writes | Total serialized payload |
-| --- | --- | --- |
-| 100 direct assignments | 100 | About 33.7 MB |
-| The same assignments inside one `$patch` | 1 | About 337 KB |
+| Update pattern | Storage writes | Payload sent to storage | Total serialized payload |
+| --- | --- | --- | --- |
+| 100 direct assignments during the first pending write | 2 | About 674 KB | About 33.7 MB |
+| The same assignments inside one `$patch` | 1 | About 337 KB | About 337 KB |
 
-These are local-workload write counts. Timing varies by backend. Asynchronous storage still requires synchronous state filtering and serialization before writes are queued. Use `include` to keep snapshots focused, and group related changes with `$patch`. For mapped storage keys or multiple configurations, one callback can produce several writes.
+These counts assume no intervening reads and a completed initial restoration. Writes that have already started cannot be replaced, so assignments spread across asynchronous turns can produce more writes. Synchronous storage still writes on every callback. Timing varies by backend. Use `include` to keep snapshots focused, and group related changes with `$patch` to reduce filtering and serialization as well as writes. For mapped storage keys or multiple configurations, one callback can produce several writes.
 
 ## Object Key Persistence
 
@@ -175,6 +181,9 @@ export const useExampleStore = defineStore('example', {
 
 - Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
+- If an included mapped property has no defined value after filtering, its storage entry is removed. For example, with `key: { a: 'ka' }` and `include: ['a.b']`, deleting `a.b` or setting it to `undefined` removes `ka` when no other included path supplies a value under `a`. A property omitted by `include` or whose top-level key is excluded keeps its existing storage entry. Defined empty objects and `null` values are still persisted.
+- After removal, `overwrite: false` keeps the in-memory defaults on reload instead of restoring the old value. A string storage key saves an empty object when no included values remain.
+- Each mapped storage key must be distinct from the other mapped keys and the fallback `store.$id` key on the same storage object. The fallback key is used even when every state property is mapped.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
 ### Typed codecs for mapped values
@@ -233,7 +242,10 @@ export const useExampleStore = defineStore('example', {
 - Each persistence configuration applies to specific state properties based on the `include` and `exclude` options.
 - Different storages can be used for different pieces of state (e.g., `localStorage` for authentication and `sessionStorage` for UI preferences).
 - When multiple persistence configurations apply to the same state keys, they will be processed in order, and the last configuration may overwrite earlier ones.
+- Each entry must use distinct storage keys on the same storage object. Different `include` or `exclude` paths do not prevent storage-key collisions. Entries without a string `key`, including object-key entries, use `store.$id` for their whole-state or remainder snapshot. Mapped keys must also be distinct from every other entry's mapped and whole-state keys, including entries of other stores. The same key can be reused on different storage objects.
 - The `overwrite` option is not allowed as persistence is sequential, with later configurations overriding previous ones.
+
+The plugin emits one `console.warn` when a storage object/key pair gains a second persistence target, even when `debug` is disabled. Targets are tracked across the live stores of a Pinia instance and released when a store is disposed; temporary hot-module-replacement stores are ignored. The warning includes the final storage key with any global prefix. Persistence behavior remains last-writer-wins: entries covering different state can lose earlier values on reload, while entries covering exactly the same state still write and restore in declaration order. Use distinct string keys to persist different selections on the same storage.
 
 This feature is particularly useful for applications requiring fine control over storage strategies, such as segregating sensitive authentication data from non-sensitive UI preferences.
 
