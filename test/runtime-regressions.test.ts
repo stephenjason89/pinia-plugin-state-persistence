@@ -1,4 +1,5 @@
 import type { PersistOptions, Storage } from '../src/types'
+import { runInNewContext } from 'node:vm'
 import { describe, expect, it, spyOn } from 'bun:test'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
 import { createApp, reactive, ref } from 'vue'
@@ -38,6 +39,79 @@ function makeStore<S extends Record<string, any>>(state: () => S, persist: boole
 }
 
 describe('runtime regressions', () => {
+	it('ignores whole-store array snapshots without adding numeric state keys', async () => {
+		for (const saved of ['[7,8]', [7, 8]]) {
+			for (const asynchronous of [false, true]) {
+				const storage = { ...memoryStorage(), getItem: () => asynchronous ? Promise.resolve(saved) : saved }
+				install(storage)
+				const store = makeStore(() => ({ count: 0 }), { deepCopy: true })
+				await store.$onRestore()
+				expect(store.$state).toEqual({ count: 0 })
+				expect(Object.hasOwn(store.$state, '0')).toBe(false)
+				expect(Object.hasOwn(store.$state, '1')).toBe(false)
+			}
+		}
+	})
+
+	it('ignores empty whole-store array snapshots in overwrite mode', async () => {
+		for (const saved of ['[]', []]) {
+			for (const asynchronous of [false, true]) {
+				install({ ...memoryStorage(), getItem: () => asynchronous ? Promise.resolve(saved) : saved })
+				const store = makeStore(() => ({ count: 0, label: 'default' }), { overwrite: true, deepCopy: true })
+				await store.$onRestore()
+				expect(store.$state).toEqual({ count: 0, label: 'default' })
+			}
+		}
+	})
+
+	it('ignores other non-plain whole-store snapshots', () => {
+		class Snapshot {
+			count = 10
+		}
+		const snapshots = ['null', '7', 'true', '"text"', new Date(), new Map(), new Set(), new Snapshot(), runInNewContext('[7, 8]'), Object.assign(Object.create({ foreign: true }), { count: 10 }), Object.assign(Object.create(Object.create(null)), { count: 10 }), Object.assign(Object.create(class extends null {}.prototype), { count: 10 }), Object.setPrototypeOf([7, 8], null), Object.setPrototypeOf([], null), Object.setPrototypeOf([7, 8], Object.prototype), Object.setPrototypeOf([], Object.prototype)]
+		for (const snapshot of snapshots) {
+			install(memoryStorage({ snapshot }) as Storage)
+			const store = makeStore(() => ({ count: 0 }), { key: 'snapshot', overwrite: true, deepCopy: true })
+			expect(store.$state).toEqual({ count: 0 })
+		}
+	})
+
+	it('warns about invalid whole-store snapshots only with debug enabled', () => {
+		const warning = spyOn(console, 'warn').mockImplementation(() => {})
+		try {
+			for (const debug of [false, true]) {
+				warning.mockClear()
+				install(memoryStorage({ snapshot: '[7,8]' }) as Storage)
+				makeStore(() => ({ count: 0 }), { key: 'snapshot', debug })
+				if (debug)
+					expect(warning).toHaveBeenCalledWith('[PersistPlugin] WARN: Ignoring invalid state snapshot for snapshot: expected a plain object.')
+				else
+					expect(warning).not.toHaveBeenCalled()
+			}
+		}
+		finally {
+			warning.mockRestore()
+		}
+	})
+
+	it('restores raw plain and null-prototype whole-store snapshots', () => {
+		for (const snapshot of [{ count: 10 }, Object.assign(Object.create(null), { count: 10 }), runInNewContext('({ count: 10 })'), { count: 10, [Symbol.toStringTag]: 'Snapshot' }]) {
+			for (const overwrite of [false, true]) {
+				install(memoryStorage({ snapshot }) as Storage)
+				const store = makeStore(() => ({ count: 0 }), { key: 'snapshot', overwrite, deepCopy: true })
+				expect(store.$state).toEqual({ count: 10 })
+			}
+		}
+	})
+
+	it('restores mapped array values from serialized and raw adapters', () => {
+		for (const saved of ['[7,8]', [7, 8], '[]', []]) {
+			install(memoryStorage({ items: saved }) as Storage)
+			const store = makeStore(() => ({ items: [0], count: 0 }), { key: { items: 'items' }, deepCopy: typeof saved !== 'string' })
+			expect(store.$state).toEqual({ items: typeof saved === 'string' ? JSON.parse(saved) : saved, count: 0 })
+		}
+	})
+
 	describe('unreadable storage keys', () => {
 		it('logs read failures without debug because later writes are skipped', async () => {
 			const error = spyOn(console, 'error').mockImplementation(() => {})

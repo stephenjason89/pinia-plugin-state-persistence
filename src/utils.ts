@@ -140,6 +140,19 @@ export function getObjectDiff(object1: Record<string, any>, object2: Record<stri
 	)
 }
 
+const objectSource = Function.prototype.toString.call(Object)
+
+export function isPlainObject(value: unknown): value is Record<string, any> {
+	if (value === null || typeof value !== 'object' || Array.isArray(value))
+		return false
+	const prototype = Object.getPrototypeOf(value)
+	if (prototype === null || prototype === Object.prototype)
+		return true
+	const constructor = Object.hasOwn(prototype, 'constructor') && prototype.constructor
+	return Object.getPrototypeOf(prototype) === null && typeof constructor === 'function'
+		&& constructor.prototype === prototype && Function.prototype.toString.call(constructor) === objectSource
+}
+
 export function isPromise(value: any): value is Promise<any> {
 	return value != null && (typeof value === 'object' || typeof value === 'function') && typeof value.then === 'function'
 }
