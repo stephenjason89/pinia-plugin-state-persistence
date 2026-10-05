@@ -124,6 +124,8 @@ catch (error) {
 
 A callback passed to `$onPersist()` runs only after successful persistence. Handle its returned promise as well: a failed write or an exception thrown by the callback rejects that promise.
 
+For asynchronous storage, consecutive queued writes or removals for the same storage key keep only the newest operation that has not started. An operation already running completes normally. If a queued persistence attempt is replaced, its `$persist()` promise and any `$onPersist()` observers wait for the replacement and report its success or failure. Reads are never replaced, and writes on either side of a queued read remain separate so the read observes the preceding write.
+
 ## Batch updates with `$patch`
 
 Use Pinia's existing `$patch` function when one operation changes several state values. The plugin subscribes synchronously, so separate direct assignments trigger separate persistence callbacks. A function passed to `$patch` groups those changes into one callback per persistence configuration.
@@ -137,14 +139,14 @@ store.$patch((state) => {
 await store.$onPersist()
 ```
 
-A local benchmark used one configuration, one storage key, a state containing 2,000 rows, and a JSON snapshot of about 337 KB. It changed a counter 100 times with an asynchronous adapter.
+A local workload used one configuration, one storage key, a state containing 2,000 rows, and a JSON snapshot of about 337 KB. For 100 direct counter assignments while the first asynchronous write is still pending, the first and final snapshots reach storage. All 100 callbacks still filter and serialize the state.
 
-| Update pattern | Storage writes | Total serialized payload |
-| --- | --- | --- |
-| 100 direct assignments | 100 | About 33.7 MB |
-| The same assignments inside one `$patch` | 1 | About 337 KB |
+| Update pattern | Storage writes | Payload sent to storage | Total serialized payload |
+| --- | --- | --- | --- |
+| 100 direct assignments during the first pending write | 2 | About 674 KB | About 33.7 MB |
+| The same assignments inside one `$patch` | 1 | About 337 KB | About 337 KB |
 
-These are local-workload write counts. Timing varies by backend. Asynchronous storage still requires synchronous state filtering and serialization before writes are queued. Use `include` to keep snapshots focused, and group related changes with `$patch`. For mapped storage keys or multiple configurations, one callback can produce several writes.
+These counts assume no intervening reads and a completed initial restoration. Writes that have already started cannot be replaced, so assignments spread across asynchronous turns can produce more writes. Synchronous storage still writes on every callback. Timing varies by backend. Use `include` to keep snapshots focused, and group related changes with `$patch` to reduce filtering and serialization as well as writes. For mapped storage keys or multiple configurations, one callback can produce several writes.
 
 ## Object Key Persistence
 
