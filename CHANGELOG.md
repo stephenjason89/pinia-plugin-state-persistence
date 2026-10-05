@@ -1,3 +1,9 @@
+## [1.12.16](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.15...v1.12.16) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* remove mapped keys when nested include values are removed ([#57](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/57)) ([056fbd1](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/056fbd18dee4b63ea87e3c9155ac7185ba8de067))
+
 ## [1.12.15](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.14...v1.12.15) (2026-10-05)
 
 ### 🐛 Bug Fixes
