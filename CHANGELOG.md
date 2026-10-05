@@ -1,3 +1,9 @@
+## [1.12.19](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.18...v1.12.19) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* ignore non-plain-object stored snapshots ([#60](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/60)) ([c861dca](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c861dca480f1bcdacdb9be8aa6db4ff054a3b904))
+
 ## [1.12.18](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.17...v1.12.18) (2026-10-05)
 
 ### 🐛 Bug Fixes
