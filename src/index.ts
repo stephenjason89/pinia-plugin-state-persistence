@@ -345,8 +345,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
 								setItem(storageKey, () => serialize(filteredState[stateKey]))
 							}
-							else if ((!Object.hasOwn(state, stateKey) || state[stateKey] === undefined)
-								&& (!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
+							else if ((!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
 								&& (!exclude || !([] as string[]).concat(exclude).includes(stateKey))) {
 								const prefixedKey = getPrefixedKey(storageKey)
 								if (!canWrite(prefixedKey))

@@ -421,6 +421,82 @@ describe('runtime regressions', () => {
 		expect(replacement.optional).toBe(0)
 	})
 
+	for (const deepCopy of [false, true]) {
+		for (const include of ['a.b', ['a.b']]) {
+			for (const removal of ['delete', 'undefined']) {
+				it(`removes nested mapped values after ${removal} with deepCopy=${deepCopy} and ${typeof include} include`, async () => {
+					const storage = memoryStorage()
+					const state = () => ({ a: { b: 0 as number | null | undefined, x: 9 } })
+					const persist = { key: { a: 'ka' }, include, deepCopy, overwrite: false }
+					install(storage as Storage)
+					const store = makeStore(state, persist)
+					store.a.b = null
+					expect(storage.data.get('ka')).toEqual(deepCopy ? { b: null } : '{"b":null}')
+					store.a.b = 1
+					expect(storage.data.get('ka')).toEqual(deepCopy ? { b: 1 } : '{"b":1}')
+
+					store.$patch((current) => {
+						if (removal === 'delete')
+							Reflect.deleteProperty(current.a, 'b')
+						else
+							current.a.b = undefined
+					})
+					await store.$onPersist()
+					expect(storage.data.has('ka')).toBe(false)
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? {} : '{}')
+					expect(store.a.x).toBe(9)
+
+					install(storage as Storage)
+					const restored = defineStore(store.$id, { state, persist })()
+					await restored.$onRestore()
+					expect(restored.$state).toEqual(state())
+				})
+
+				it(`persists an empty string-key snapshot after ${removal} with deepCopy=${deepCopy} and ${typeof include} include`, () => {
+					const storage = memoryStorage()
+					install(storage as Storage)
+					const store = makeStore(() => ({ a: { b: 0 as number | undefined, x: 9 } }), { include, deepCopy })
+					store.a.b = 1
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? { a: { b: 1 } } : '{"a":{"b":1}}')
+
+					store.$patch((current) => {
+						if (removal === 'delete')
+							Reflect.deleteProperty(current.a, 'b')
+						else
+							current.a.b = undefined
+					})
+					expect(storage.data.get(store.$id)).toEqual(deepCopy ? {} : '{}')
+				})
+			}
+		}
+	}
+
+	it('preserves mapped values when nested includes omit them or their root is excluded', () => {
+		for (const selection of [{ include: 'ab.b' }, { include: ['a.b'], exclude: 'a' }]) {
+			const storage = memoryStorage({ ka: '{"b":1}' })
+			install(storage as Storage)
+			const store = makeStore(() => ({ a: { b: 0 as number | undefined }, ab: { b: 2 } }), {
+				key: { a: 'ka' },
+				...selection,
+			})
+			store.a.b = undefined
+			expect(storage.data.get('ka')).toBe('{"b":1}')
+		}
+	})
+
+	it('stores defined empty mapped objects after excluding nested fields', () => {
+		const storage = memoryStorage({ ka: '{"b":1}' })
+		install(storage as Storage)
+		const store = makeStore(() => ({ a: { b: 0 } }), {
+			key: { a: 'ka' },
+			include: ['a.b'],
+			exclude: 'a.b',
+		})
+		store.a.b = 2
+		expect(storage.data.get('ka')).toBe('{}')
+		expect(store.a.b).toBe(2)
+	})
+
 	it('does not remove mapped values intentionally omitted by include or exclude', () => {
 		for (const selection of [{ include: 'other' }, { exclude: 'optional' }]) {
 			const storage = memoryStorage({ optional: '10' })
