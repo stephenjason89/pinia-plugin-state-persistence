@@ -1,3 +1,9 @@
+## [1.12.18](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.17...v1.12.18) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* warn when persist entries share a storage key ([#59](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/59)) ([c103a23](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c103a231bb008e74ef40d4afb0c2e9767353c1f9))
+
 ## [1.12.17](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.16...v1.12.17) (2026-10-05)
 
 ### ⚡ Performance
