@@ -1,3 +1,9 @@
+## [1.12.20](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.19...v1.12.20) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* defer automatic persistence until async restoration settles ([#61](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/61)) ([297b589](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/297b589d40cc449703583bbfdb03033ab81778e7))
+
 ## [1.12.19](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.18...v1.12.19) (2026-10-05)
 
 ### 🐛 Bug Fixes
