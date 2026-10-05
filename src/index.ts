@@ -11,6 +11,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 ): PiniaPlugin {
 	const queues = new WeakMap<Storage, StorageQueue>()
 	const unreadableStorageKeys = new WeakMap<Storage, Set<string>>()
+	const storageTargets = new WeakMap<object, WeakMap<Storage, Map<string, number>>>()
 
 	const detectStorage = (log: ReturnType<typeof createLogger>): Storage | null => {
 		if (typeof window === 'undefined') {
@@ -64,6 +65,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		let synchronousRestores: Array<() => void> | null = null
 		let orderedRestoration: Promise<void> | null = null
 		const restoredFingerprints = new Map<string, { present: boolean, value: ReturnType<typeof fingerprint> }>()
+		const releaseTargets: Array<() => void> = []
 
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
@@ -107,6 +109,31 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
+
+			if (!context.store.$id.startsWith('__hot:')) {
+				let piniaTargets = storageTargets.get(context.pinia)
+				if (!piniaTargets)
+					storageTargets.set(context.pinia, piniaTargets = new WeakMap())
+				let targets = piniaTargets.get(activeStorage)
+				if (!targets)
+					piniaTargets.set(activeStorage, targets = new Map())
+				const storageKeys = typeof key === 'string' ? [key] : [context.store.$id, ...Object.values(key)]
+				for (const storageKey of storageKeys) {
+					const prefixedKey = getPrefixedKey(storageKey)
+					const count = (targets.get(prefixedKey) ?? 0) + 1
+					targets.set(prefixedKey, count)
+					if (count === 2)
+						createLogger(true).warn(`Storage key '${prefixedKey}' is shared by multiple persistence targets (store '${context.store.$id}'). Writes are last-writer-wins; use distinct storage keys per storage.`)
+					const storeTargets = targets
+					releaseTargets.push(() => {
+						const remaining = storeTargets.get(prefixedKey)! - 1
+						if (remaining)
+							storeTargets.set(prefixedKey, remaining)
+						else
+							storeTargets.delete(prefixedKey)
+					})
+				}
+			}
 
 			const canWrite = (prefixedKey: string) => {
 				if (!unreadableKeys.has(prefixedKey))
@@ -397,6 +424,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (disposed)
 				return
 			disposed = true
+			releaseTargets.forEach(release => release())
 			dispose.call(context.store)
 		}
 

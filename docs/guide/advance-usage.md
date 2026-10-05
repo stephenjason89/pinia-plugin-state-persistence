@@ -181,6 +181,7 @@ export const useExampleStore = defineStore('example', {
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
 - If an included mapped property has no defined value after filtering, its storage entry is removed. For example, with `key: { a: 'ka' }` and `include: ['a.b']`, deleting `a.b` or setting it to `undefined` removes `ka` when no other included path supplies a value under `a`. A property omitted by `include` or whose top-level key is excluded keeps its existing storage entry. Defined empty objects and `null` values are still persisted.
 - After removal, `overwrite: false` keeps the in-memory defaults on reload instead of restoring the old value. A string storage key saves an empty object when no included values remain.
+- Each mapped storage key must be distinct from the other mapped keys and the fallback `store.$id` key on the same storage object. The fallback key is used even when every state property is mapped.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
 ### Typed codecs for mapped values
@@ -239,7 +240,10 @@ export const useExampleStore = defineStore('example', {
 - Each persistence configuration applies to specific state properties based on the `include` and `exclude` options.
 - Different storages can be used for different pieces of state (e.g., `localStorage` for authentication and `sessionStorage` for UI preferences).
 - When multiple persistence configurations apply to the same state keys, they will be processed in order, and the last configuration may overwrite earlier ones.
+- Each entry must use distinct storage keys on the same storage object. Different `include` or `exclude` paths do not prevent storage-key collisions. Entries without a string `key`, including object-key entries, use `store.$id` for their whole-state or remainder snapshot. Mapped keys must also be distinct from every other entry's mapped and whole-state keys, including entries of other stores. The same key can be reused on different storage objects.
 - The `overwrite` option is not allowed as persistence is sequential, with later configurations overriding previous ones.
+
+The plugin emits one `console.warn` when a storage object/key pair gains a second persistence target, even when `debug` is disabled. Targets are tracked across the live stores of a Pinia instance and released when a store is disposed; temporary hot-module-replacement stores are ignored. The warning includes the final storage key with any global prefix. Persistence behavior remains last-writer-wins: entries covering different state can lose earlier values on reload, while entries covering exactly the same state still write and restore in declaration order. Use distinct string keys to persist different selections on the same storage.
 
 This feature is particularly useful for applications requiring fine control over storage strategies, such as segregating sensitive authentication data from non-sensitive UI preferences.
 
