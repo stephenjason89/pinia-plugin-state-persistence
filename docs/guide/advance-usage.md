@@ -88,6 +88,8 @@ With `overwrite: true`, restored nested values replace existing nested values. M
 
 A missing storage entry keeps defaults. An actual saved empty object clears existing values in overwrite mode. Changes made while asynchronous hydration is pending remain protected.
 
+Whole-store snapshots, including the fallback storage bucket for mapped keys, must be plain objects whose prototype is `Object.prototype` (from any realm) or `null`. Arrays and other non-plain values are ignored, leaving the current state intact, with a warning when `debug: true`. This also applies to raw objects returned by custom storage adapters. Mapped property values can still be arrays or other values supported by the configured codecs and adapter.
+
 Use this functionality sparingly for specific cases to ensure the store stays in sync with storage.
 
 ## `$persist`

@@ -1,7 +1,7 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 import { isReactive, isRef } from 'vue'
-import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, prepareStateMerge, settleAll } from './utils.js'
+import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPlainObject, isPromise, prepareStateMerge, settleAll } from './utils.js'
 
 export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 
@@ -214,9 +214,12 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							if (stateKey !== undefined) {
 								storedValues[stateKey] = deserializedValue
 							}
-							else if (deserializedValue && typeof deserializedValue === 'object') {
+							else if (isPlainObject(deserializedValue)) {
 								storedState = deserializedValue as Record<string, any>
 								hasStoredState = true
+							}
+							else {
+								log.warn(`Ignoring invalid state snapshot for ${storageKey}: expected a plain object.`)
 							}
 						}
 						catch (error) {
