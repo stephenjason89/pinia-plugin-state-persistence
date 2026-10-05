@@ -1,3 +1,9 @@
+## [1.12.17](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.16...v1.12.17) (2026-10-05)
+
+### ⚡ Performance
+
+* coalesce queued asynchronous storage writes ([#58](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/58)) ([122ee67](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/122ee67e19ec6dfe91cda139c32575e8f93ab6cd))
+
 ## [1.12.16](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.15...v1.12.16) (2026-10-05)
 
 ### 🐛 Bug Fixes
