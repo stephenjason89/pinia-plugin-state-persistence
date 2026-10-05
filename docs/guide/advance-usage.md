@@ -124,6 +124,10 @@ catch (error) {
 
 A callback passed to `$onPersist()` runs only after successful persistence. Handle its returned promise as well: a failed write or an exception thrown by the callback rejects that promise.
 
+If `getItem` throws or rejects, the plugin preserves that storage key until a later `$restore()` reads it successfully. Automatic persistence and `$persist()` skip both writes and removals for the unreadable key, including operations queued before the read failed. Other storage keys continue to persist. With `overwrite: true`, a failed mapped read keeps the corresponding state field, and a failed whole-store or fallback read keeps fields omitted from the available snapshot.
+
+Skipped operations resolve successfully, so `$persist()` and `$onPersist()` may complete without saving unreadable keys. A `$onPersist()` callback still runs when all remaining writes succeed. Read failures are always logged with `console.error`; enable `debug` to also log each skipped operation. After the storage adapter recovers, call and await `$restore()` before retrying persistence. A successful read clears the protection even when the entry is missing or its value cannot be deserialized. Values that fail to deserialize retain the existing behavior: the next persistence attempt replaces or removes them.
+
 ## Batch updates with `$patch`
 
 Use Pinia's existing `$patch` function when one operation changes several state values. The plugin subscribes synchronously, so separate direct assignments trigger separate persistence callbacks. A function passed to `$patch` groups those changes into one callback per persistence configuration.
