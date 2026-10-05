@@ -416,6 +416,145 @@ describe('async restore fingerprints', () => {
 	})
 })
 
+describe('async write coalescing', () => {
+	it('persists 100 rapid mutations with only the first and latest writes', async () => {
+		const storage = memoryStorage()
+		const firstWrite = deferred<void>()
+		const writes: number[] = []
+		activate({
+			...storage,
+			setItem: async (key, value) => {
+				writes.push(JSON.parse(value).count)
+				if (writes.length === 1)
+					await firstWrite.promise
+				storage.setItem(key, value)
+			},
+		})
+		const store = makeStore(() => ({ count: 0 }), {})
+		for (let count = 1; count <= 100; count++)
+			store.count = count
+		expect(writes).toEqual([1])
+		firstWrite.resolve()
+		await store.$onPersist()
+		expect(writes).toEqual([1, 100])
+		expect(storage.data.get(store.$id)).toBe('{"count":100}')
+	})
+
+	it('keeps reads ordered between coalesced writes and never coalesces reads', async () => {
+		const queues = {}
+		const gate = deferred<void>()
+		const events: string[] = []
+		let value = 0
+		const first = enqueue(queues, 'key', () => gate.promise)
+		const write = (next: number) => enqueue(queues, 'key', () => {
+			events.push(`write ${next}`)
+			value = next
+		}, true)
+		const read = () => enqueue(queues, 'key', () => {
+			events.push(`read ${value}`)
+			return value
+		})
+		const superseded = write(1)
+		const beforeRead = write(2)
+		const firstRead = read()
+		const secondRead = read()
+		const afterRead = write(3)
+		const latest = write(4)
+		gate.resolve()
+		await Promise.all([first, superseded, beforeRead, afterRead, latest])
+		expect(await firstRead).toBe(2)
+		expect(await secondRead).toBe(2)
+		expect(events).toEqual(['write 2', 'read 2', 'read 2', 'write 4'])
+	})
+
+	it('settles superseded promises with the latest write failure', async () => {
+		const queues = {}
+		const gate = deferred<void>()
+		const events: string[] = []
+		const first = enqueue(queues, 'key', () => gate.promise)
+		const superseded = enqueue(queues, 'key', () => {
+			events.push('superseded')
+		}, true)
+		const latest = enqueue(queues, 'key', () => {
+			events.push('latest')
+			throw new Error('latest failed')
+		}, true)
+		gate.resolve()
+		const outcomes = await Promise.allSettled([first, superseded, latest])
+		expect(outcomes.map(outcome => outcome.status)).toEqual(['fulfilled', 'rejected', 'rejected'])
+		for (const outcome of outcomes.slice(1)) {
+			if (outcome.status === 'rejected')
+				expect(outcome.reason.message).toBe('latest failed')
+		}
+		expect(events).toEqual(['latest'])
+		expect(await enqueue(queues, 'key', () => 'recovered', true)).toBe('recovered')
+	})
+
+	it('rejects superseded $persist and $onPersist observers on the final write failure', async () => {
+		const firstWrite = deferred<void>()
+		const writes: number[] = []
+		activate({
+			...memoryStorage(),
+			setItem: async (_key, value) => {
+				const count = JSON.parse(value).count
+				writes.push(count)
+				if (writes.length === 1)
+					await firstWrite.promise
+				if (count === 3)
+					throw new Error('final write failed')
+			},
+		})
+		const store = makeStore(() => ({ count: 0 }), {})
+		store.count = 1
+		store.count = 2
+		const manual = store.$persist()
+		const observer = store.$onPersist()
+		store.count = 3
+		const latest = store.$onPersist()
+		firstWrite.resolve()
+		const outcomes = await Promise.allSettled([manual, observer, latest])
+		expect(outcomes.map(outcome => outcome.status)).toEqual(['rejected', 'rejected', 'rejected'])
+		expect(writes).toEqual([1, 3])
+	})
+
+	it('coalesces queued removes and sets while preserving an in-flight remove', async () => {
+		const storage = memoryStorage()
+		const removeGate = deferred<void>()
+		const events: string[] = []
+		let firstRemove = true
+		activate({
+			...storage,
+			setItem: async (key, value) => {
+				if (key === 'mapped')
+					events.push(`set ${value}`)
+				storage.setItem(key, value)
+			},
+			removeItem: async (key) => {
+				events.push('remove')
+				if (firstRemove) {
+					firstRemove = false
+					await removeGate.promise
+				}
+				storage.removeItem(key)
+			},
+		})
+		const store = makeStore(() => ({ count: undefined as number | undefined }), { key: { count: 'mapped' } })
+		const first = store.$persist()
+		store.count = 1
+		store.count = undefined
+		store.count = 2
+		removeGate.resolve()
+		await first
+		await store.$onPersist()
+		expect(events).toEqual(['remove', 'set 2'])
+		expect(storage.data.get('mapped')).toBe('2')
+		store.count = undefined
+		await store.$onPersist()
+		expect(events).toEqual(['remove', 'set 2', 'remove'])
+		expect(storage.data.has('mapped')).toBe(false)
+	})
+})
+
 describe('cross-realm promises and thenables', () => {
 	const ForeignPromise: PromiseConstructor = runInNewContext('Promise')
 

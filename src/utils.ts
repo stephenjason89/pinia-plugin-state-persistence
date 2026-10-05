@@ -98,17 +98,37 @@ export function prepareStateMerge(target: Record<string, any>, patch: Record<str
 	prepare(target, patch)
 }
 
+export type StorageQueue = Record<string, {
+	settled: Promise<void>
+	result: Promise<unknown>
+	operation?: () => unknown
+}>
+
 // Run storage operations for the same key one at a time, starting each only after the previous one settles
-export function enqueue<T>(queues: Record<string, Promise<unknown>>, key: string, operation: () => T | Promise<T>): T | Promise<T> {
+export function enqueue<T>(queues: StorageQueue, key: string, operation: () => T | Promise<T>, coalesce = false): T | Promise<T> {
 	const pending = Object.hasOwn(queues, key) ? queues[key] : undefined
-	const result = pending ? pending.then(operation) : operation()
+	if (coalesce && pending?.operation) {
+		pending.operation = operation
+		return pending.result as Promise<T>
+	}
+	let entry: StorageQueue[string]
+	const result = pending
+		? pending.settled.then(() => {
+				const next = entry.operation ?? operation
+				delete entry.operation
+				return next() as T | Promise<T>
+			})
+		: operation()
 	if (!isPromise(result))
 		return result
 	const promise = Promise.resolve(result)
 	const settled = promise.then(() => {}, () => {})
-	Object.defineProperty(queues, key, { value: settled, writable: true, enumerable: true, configurable: true })
+	entry = { settled, result: promise }
+	if (pending && coalesce)
+		entry.operation = operation
+	Object.defineProperty(queues, key, { value: entry, writable: true, enumerable: true, configurable: true })
 	settled.then(() => {
-		if (queues[key] === settled)
+		if (queues[key] === entry)
 			delete queues[key]
 	})
 	return promise

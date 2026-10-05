@@ -1,5 +1,6 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
+import type { StorageQueue } from './utils.js'
 import { isReactive, isRef } from 'vue'
 import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, prepareStateMerge, settleAll } from './utils.js'
 
@@ -8,7 +9,7 @@ export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
-	const queues = new WeakMap<Storage, Record<string, Promise<unknown>>>()
+	const queues = new WeakMap<Storage, StorageQueue>()
 	const unreadableStorageKeys = new WeakMap<Storage, Set<string>>()
 
 	const detectStorage = (log: ReturnType<typeof createLogger>): Storage | null => {
@@ -319,7 +320,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							const result = enqueue(storageQueues, prefixedKey, () => {
 								if (canWrite(prefixedKey))
 									return activeStorage.setItem(prefixedKey, storedValue)
-							})
+							}, true)
 							if (isPromise(result)) {
 								tasks.push(result.then(() => {}))
 							}
@@ -354,7 +355,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 									const result = enqueue(storageQueues, prefixedKey, () => {
 										if (canWrite(prefixedKey))
 											return activeStorage.removeItem(prefixedKey)
-									})
+									}, true)
 									if (isPromise(result))
 										tasks.push(result.then(() => {}))
 								}
