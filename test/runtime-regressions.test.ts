@@ -1,5 +1,5 @@
 import type { PersistOptions, Storage } from '../src/types'
-import { describe, expect, it } from 'bun:test'
+import { describe, expect, it, spyOn } from 'bun:test'
 import { createPinia, defineStore, setActivePinia } from 'pinia'
 import { createApp, reactive, ref } from 'vue'
 import { createStatePersistence } from '../src/index'
@@ -39,6 +39,25 @@ function makeStore<S extends Record<string, any>>(state: () => S, persist: boole
 
 describe('runtime regressions', () => {
 	describe('unreadable storage keys', () => {
+		it('logs read failures without debug because later writes are skipped', async () => {
+			const error = spyOn(console, 'error').mockImplementation(() => {})
+			try {
+				const storage = memoryStorage({ snapshot: '{"count":5}' })
+				install({ ...storage, getItem: () => Promise.reject(new Error('transient')) })
+				const store = makeStore(() => ({ count: 0 }), { key: 'snapshot' })
+				await store.$onRestore()
+				store.count = 7
+				await store.$persist()
+
+				expect(storage.data.get('snapshot')).toBe('{"count":5}')
+				expect(error).toHaveBeenCalledTimes(1)
+				expect(String(error.mock.calls[0][0])).toContain(`skipping persistence for 'snapshot'`)
+			}
+			finally {
+				error.mockRestore()
+			}
+		})
+
 		it.each([false, true])('preserves mapped state and skips writes and removals until a successful read, async: %s', async (asynchronous) => {
 			const storage = memoryStorage({ [`runtime-${id + 1}`]: '{"count":5}', tok: '"secret"' })
 			const writes: string[] = []

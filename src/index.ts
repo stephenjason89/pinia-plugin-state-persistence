@@ -247,7 +247,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 					const readFailed = (error: unknown) => {
 						unreadableKeys.add(prefixedKey)
-						log.error(`Error retrieving ${storageKey}:`, error)
+						createLogger(true).error(`Error retrieving ${storageKey}; skipping persistence for '${prefixedKey}' until $restore() reads it:`, error)
 					}
 					try {
 						const savedValue = enqueue(storageQueues, prefixedKey, () => activeStorage.getItem(prefixedKey))
