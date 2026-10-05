@@ -1,3 +1,9 @@
+## [1.12.15](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.14...v1.12.15) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* protect storage keys whose reads fail from being overwritten ([#56](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/56)) ([eca3d1c](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/eca3d1cca8dee37016e07bbf4d925481891b7cc6))
+
 ## [1.12.14](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.13...v1.12.14) (2026-10-04)
 
 ### 🐛 Bug Fixes
