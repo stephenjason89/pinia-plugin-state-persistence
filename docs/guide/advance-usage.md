@@ -173,6 +173,8 @@ export const useExampleStore = defineStore('example', {
 
 - Each state property specified in the `key` object is serialized and stored individually under its respective storage key.
 - Properties not included in the `key` object will fall back to the default storage behavior and will use `store.$id` as the storage key.
+- If an included mapped property has no defined value after filtering, its storage entry is removed. For example, with `key: { a: 'ka' }` and `include: ['a.b']`, deleting `a.b` or setting it to `undefined` removes `ka` when no other included path supplies a value under `a`. A property omitted by `include` or whose top-level key is excluded keeps its existing storage entry. Defined empty objects and `null` values are still persisted.
+- After removal, `overwrite: false` keeps the in-memory defaults on reload instead of restoring the old value. A string storage key saves an empty object when no included values remain.
 - This approach is particularly useful for large stores where persisting state properties to different storage keys is needed.
 
 ### Typed codecs for mapped values
