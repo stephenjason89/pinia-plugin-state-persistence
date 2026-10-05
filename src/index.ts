@@ -1,14 +1,17 @@
 import type { PiniaPlugin, PiniaPluginContext, StateTree } from 'pinia'
 import type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
+import type { StorageQueue } from './utils.js'
 import { isReactive, isRef } from 'vue'
-import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPromise, prepareStateMerge, settleAll } from './utils.js'
+import { applyStateFilter, createLogger, enqueue, fingerprint, getObjectDiff, isPlainObject, isPromise, prepareStateMerge, settleAll } from './utils.js'
 
 export type { GlobalPersistOptions, PersistOptions, Storage } from './types.js'
 
 export function createStatePersistence<S extends StateTree = StateTree>(
 	globalOptions: GlobalPersistOptions<S> = {},
 ): PiniaPlugin {
-	const queues = new WeakMap<Storage, Record<string, Promise<unknown>>>()
+	const queues = new WeakMap<Storage, StorageQueue>()
+	const unreadableStorageKeys = new WeakMap<Storage, Set<string>>()
+	const storageTargets = new WeakMap<object, WeakMap<Storage, Map<string, number>>>()
 
 	const detectStorage = (log: ReturnType<typeof createLogger>): Storage | null => {
 		if (typeof window === 'undefined') {
@@ -65,6 +68,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 		let synchronousRestores: Array<() => void> | null = null
 		let orderedRestoration: Promise<void> | null = null
 		const restoredFingerprints = new Map<string, { present: boolean, value: ReturnType<typeof fingerprint> }>()
+		const releaseTargets: Array<() => void> = []
 
 		const persisters: Array<{
 			loadState: () => Promise<void> | void
@@ -102,9 +106,44 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			let storageQueues = queues.get(activeStorage)
 			if (!storageQueues)
 				queues.set(activeStorage, storageQueues = {})
+			let unreadableKeys = unreadableStorageKeys.get(activeStorage)
+			if (!unreadableKeys)
+				unreadableStorageKeys.set(activeStorage, unreadableKeys = new Set())
 
 			const getPrefixedKey = (storeKey: string) =>
 				globalOptions.key ? `${globalOptions.key}:${storeKey}` : storeKey
+
+			if (!context.store.$id.startsWith('__hot:')) {
+				let piniaTargets = storageTargets.get(context.pinia)
+				if (!piniaTargets)
+					storageTargets.set(context.pinia, piniaTargets = new WeakMap())
+				let targets = piniaTargets.get(activeStorage)
+				if (!targets)
+					piniaTargets.set(activeStorage, targets = new Map())
+				const storageKeys = typeof key === 'string' ? [key] : [context.store.$id, ...Object.values(key)]
+				for (const storageKey of storageKeys) {
+					const prefixedKey = getPrefixedKey(storageKey)
+					const count = (targets.get(prefixedKey) ?? 0) + 1
+					targets.set(prefixedKey, count)
+					if (count === 2)
+						createLogger(true).warn(`Storage key '${prefixedKey}' is shared by multiple persistence targets (store '${context.store.$id}'). Writes are last-writer-wins; use distinct storage keys per storage.`)
+					const storeTargets = targets
+					releaseTargets.push(() => {
+						const remaining = storeTargets.get(prefixedKey)! - 1
+						if (remaining)
+							storeTargets.set(prefixedKey, remaining)
+						else
+							storeTargets.delete(prefixedKey)
+					})
+				}
+			}
+
+			const canWrite = (prefixedKey: string) => {
+				if (!unreadableKeys.has(prefixedKey))
+					return true
+				log.warn(`Skipping persistence for unreadable storage key '${prefixedKey}'.`)
+				return false
+			}
 
 			let persistencePromise: Promise<void> | null = null
 
@@ -119,6 +158,14 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					if (disposed || generation !== restorationGeneration || (!hasStoredState && Object.keys(state).length === 0)) {
 						log.warn(`No state to restore for ${context.store.$id}.`)
 						return
+					}
+					if (unreadableKeys.has(getPrefixedKey(typeof key === 'string' ? key : context.store.$id)))
+						Object.keys(context.store.$state).forEach(stateKey => protectedKeys.add(stateKey))
+					if (typeof key === 'object') {
+						for (const [stateKey, storageKey] of Object.entries(key)) {
+							if (unreadableKeys.has(getPrefixedKey(storageKey)))
+								protectedKeys.add(stateKey)
+						}
 					}
 					log.info(`Restoring state for ${context.store.$id}`)
 					prepareStateMerge(context.store.$state, state)
@@ -209,7 +256,9 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 				}
 
 				const resolveAndDeserialize = (storageKey: string, stateKey?: string) => {
+					const prefixedKey = getPrefixedKey(storageKey)
 					const processValue = (value: unknown) => {
+						unreadableKeys.delete(prefixedKey)
 						if (value === null || value === undefined)
 							return
 						try {
@@ -217,9 +266,12 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 							if (stateKey !== undefined) {
 								storedValues[stateKey] = deserializedValue
 							}
-							else if (deserializedValue && typeof deserializedValue === 'object') {
+							else if (isPlainObject(deserializedValue)) {
 								storedState = deserializedValue as Record<string, any>
 								hasStoredState = true
+							}
+							else {
+								log.warn(`Ignoring invalid state snapshot for ${storageKey}: expected a plain object.`)
 							}
 						}
 						catch (error) {
@@ -227,17 +279,20 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 						}
 					}
 
-					const prefixedKey = getPrefixedKey(storageKey)
+					const readFailed = (error: unknown) => {
+						unreadableKeys.add(prefixedKey)
+						createLogger(true).error(`Error retrieving ${storageKey}; skipping persistence for '${prefixedKey}' until $restore() reads it:`, error)
+					}
 					try {
 						const savedValue = enqueue(storageQueues, prefixedKey, () => activeStorage.getItem(prefixedKey))
 						if (isPromise(savedValue)) {
-							tasks.push(savedValue.then(processValue, error => console.error(`Error processing queue for key '${storageKey}':`, error)))
+							tasks.push(savedValue.then(processValue, readFailed))
 							return
 						}
 						processValue(savedValue)
 					}
 					catch (error) {
-						log.error(`Error retrieving ${storageKey}:`, error)
+						readFailed(error)
 					}
 				}
 
@@ -288,11 +343,17 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 
 					persistencePromise = null
 					const filteredState = applyStateFilter(state, include, exclude)
-					const setItem = (storageKey: string, value: string) => {
+					const setItem = (storageKey: string, serializeValue: () => string) => {
 						const prefixedKey = getPrefixedKey(storageKey)
+						if (!canWrite(prefixedKey))
+							return
+						const value = serializeValue()
 						try {
 							const storedValue = storesRawValues ? deserialize(value) : value
-							const result = enqueue(storageQueues, prefixedKey, () => activeStorage.setItem(prefixedKey, storedValue))
+							const result = enqueue(storageQueues, prefixedKey, () => {
+								if (canWrite(prefixedKey))
+									return activeStorage.setItem(prefixedKey, storedValue)
+							}, true)
 							if (isPromise(result)) {
 								tasks.push(result.then(() => {}))
 							}
@@ -303,7 +364,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 					}
 
 					if (typeof key === 'string') {
-						setItem(key, serialize(filteredState))
+						setItem(key, () => serialize(filteredState))
 					}
 					else {
 						const remainingState = getObjectDiff(filteredState, key)
@@ -313,17 +374,21 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 									Object.defineProperty(remainingState, stateKey, { value: null, enumerable: true, configurable: true, writable: true })
 							}
 						}
-						setItem(context.store.$id, serialize(remainingState))
+						setItem(context.store.$id, () => serialize(remainingState))
 						for (const [stateKey, storageKey] of Object.entries(key)) {
 							if (Object.hasOwn(filteredState, stateKey) && filteredState[stateKey] !== undefined) {
-								setItem(storageKey, serialize(filteredState[stateKey]))
+								setItem(storageKey, () => serialize(filteredState[stateKey]))
 							}
-							else if ((!Object.hasOwn(state, stateKey) || state[stateKey] === undefined)
-								&& (!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
+							else if ((!include || ([] as string[]).concat(include).some(path => path === stateKey || path.startsWith(`${stateKey}.`)))
 								&& (!exclude || !([] as string[]).concat(exclude).includes(stateKey))) {
 								const prefixedKey = getPrefixedKey(storageKey)
+								if (!canWrite(prefixedKey))
+									continue
 								try {
-									const result = enqueue(storageQueues, prefixedKey, () => activeStorage.removeItem(prefixedKey))
+									const result = enqueue(storageQueues, prefixedKey, () => {
+										if (canWrite(prefixedKey))
+											return activeStorage.removeItem(prefixedKey)
+									}, true)
 									if (isPromise(result))
 										tasks.push(result.then(() => {}))
 								}
@@ -365,6 +430,7 @@ export function createStatePersistence<S extends StateTree = StateTree>(
 			if (disposed)
 				return
 			disposed = true
+			releaseTargets.forEach(release => release())
 			dispose.call(context.store)
 		}
 

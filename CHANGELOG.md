@@ -1,3 +1,33 @@
+## [1.12.19](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.18...v1.12.19) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* ignore non-plain-object stored snapshots ([#60](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/60)) ([c861dca](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c861dca480f1bcdacdb9be8aa6db4ff054a3b904))
+
+## [1.12.18](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.17...v1.12.18) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* warn when persist entries share a storage key ([#59](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/59)) ([c103a23](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/c103a231bb008e74ef40d4afb0c2e9767353c1f9))
+
+## [1.12.17](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.16...v1.12.17) (2026-10-05)
+
+### ⚡ Performance
+
+* coalesce queued asynchronous storage writes ([#58](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/58)) ([122ee67](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/122ee67e19ec6dfe91cda139c32575e8f93ab6cd))
+
+## [1.12.16](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.15...v1.12.16) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* remove mapped keys when nested include values are removed ([#57](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/57)) ([056fbd1](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/056fbd18dee4b63ea87e3c9155ac7185ba8de067))
+
+## [1.12.15](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.14...v1.12.15) (2026-10-05)
+
+### 🐛 Bug Fixes
+
+* protect storage keys whose reads fail from being overwritten ([#56](https://github.com/stephenjason89/pinia-plugin-state-persistence/issues/56)) ([eca3d1c](https://github.com/stephenjason89/pinia-plugin-state-persistence/commit/eca3d1cca8dee37016e07bbf4d925481891b7cc6))
+
 ## [1.12.14](https://github.com/stephenjason89/pinia-plugin-state-persistence/compare/v1.12.13...v1.12.14) (2026-10-04)
 
 ### 🐛 Bug Fixes

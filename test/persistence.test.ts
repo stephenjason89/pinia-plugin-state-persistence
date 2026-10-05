@@ -1,6 +1,6 @@
 import type { PersistOptions, Storage } from '../src/types'
-import { afterEach, beforeEach, describe, expect, it } from 'bun:test'
-import { createPinia, defineStore, setActivePinia } from 'pinia'
+import { afterEach, beforeEach, describe, expect, it, spyOn } from 'bun:test'
+import { createPinia, defineStore, getActivePinia, setActivePinia } from 'pinia'
 import { createApp } from 'vue'
 import { createStatePersistence } from '../src/index'
 
@@ -34,9 +34,9 @@ function asyncStorage(initial: Record<string, unknown> = {}, { readDelays = {} a
 	}
 }
 
-function usePlugin(storage?: Storage) {
+function usePlugin(storage?: Storage, key?: string) {
 	const pinia = createPinia()
-	pinia.use(createStatePersistence(storage ? { storage } : {}))
+	pinia.use(createStatePersistence({ storage, key }))
 	createApp({ render: () => null }).use(pinia)
 	setActivePinia(pinia)
 }
@@ -182,5 +182,143 @@ describe('multiple persist configs', () => {
 
 		expect(JSON.parse(slow.data.get('slow-key') as string)).toEqual({ a: 10 })
 		expect(JSON.parse(fast.data.get('fast-key') as string)).toEqual({ b: 20 })
+	})
+})
+
+describe('storage key collisions', () => {
+	let warn: ReturnType<typeof spyOn<typeof console, 'warn'>>
+	beforeEach(() => {
+		warn = spyOn(console, 'warn').mockImplementation(() => {})
+	})
+	afterEach(() => {
+		warn.mockRestore()
+	})
+
+	it('warns once without debug for entries sharing the default key and keeps last-writer behavior', () => {
+		const storage = syncStorage()
+		usePlugin(storage)
+		const persist = [{ include: 'alpha' }, { include: 'beta' }, { include: 'beta' }]
+		const state = () => ({ alpha: 1, beta: 2 })
+		const store = createStore(state, persist)
+
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain(`Storage key '${store.$id}'`)
+		store.$patch({ alpha: 10, beta: 20 })
+		store.$persist()
+		store.$restore()
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(JSON.parse(storage.data.get(store.$id) as string)).toEqual({ beta: 20 })
+
+		usePlugin(storage)
+		const restored = defineStore(store.$id, { state, persist })()
+		expect(restored.$state).toEqual({ alpha: 1, beta: 20 })
+		expect(warn).toHaveBeenCalledTimes(2)
+	})
+
+	it('does not warn for the same key on different storage objects', () => {
+		usePlugin()
+		createStore(() => ({ alpha: 1, beta: 2 }), [
+			{ storage: syncStorage(), include: 'alpha' },
+			{ storage: syncStorage(), include: 'beta' },
+		])
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	it('does not warn for distinct string keys on the same storage', () => {
+		usePlugin(syncStorage())
+		createStore(() => ({ alpha: 1, beta: 2 }), [
+			{ key: 'alpha-state', include: 'alpha' },
+			{ key: 'beta-state', include: 'beta' },
+		])
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	it('warns for object-key entries sharing the store remainder key', () => {
+		usePlugin(syncStorage())
+		const store = createStore(() => ({ alpha: 1, beta: 2, other: 3 }), [
+			{ key: { alpha: 'alpha-value' }, include: ['alpha', 'other'] },
+			{ key: { beta: 'beta-value' }, include: 'beta' },
+		])
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain(`Storage key '${store.$id}'`)
+	})
+
+	it('warns once for each colliding prefixed remainder and mapped key', () => {
+		usePlugin(syncStorage(), 'app')
+		const store = createStore(() => ({ alpha: 1, beta: 2 }), [
+			{ key: { alpha: 'shared' } },
+			{ key: { beta: 'shared' } },
+			{ key: { alpha: 'shared', beta: 'shared' } },
+		])
+		expect(warn).toHaveBeenCalledTimes(2)
+		expect(warn.mock.calls[0][0]).toContain(`Storage key 'app:${store.$id}'`)
+		expect(warn.mock.calls[1][0]).toContain('Storage key \'app:shared\'')
+	})
+
+	it('warns when a mapped key equals another entry whole-store key in either order', () => {
+		for (const reverse of [false, true]) {
+			warn.mockClear()
+			usePlugin(syncStorage())
+			const persist = [{ key: { alpha: 'shared' } }, { key: 'shared' }]
+			createStore(() => ({ alpha: 1 }), reverse ? persist.reverse() : persist)
+			expect(warn).toHaveBeenCalledTimes(1)
+			expect(warn.mock.calls[0][0]).toContain('Storage key \'shared\'')
+		}
+	})
+
+	it('warns when a mapped key equals its own remainder key', () => {
+		usePlugin(syncStorage())
+		const id = `store-${storeId + 1}`
+		createStore(() => ({ alpha: 1 }), { key: { alpha: id } })
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain(`Storage key '${id}'`)
+	})
+
+	it('warns for duplicate mapped keys within one entry', () => {
+		usePlugin(syncStorage())
+		createStore(() => ({ alpha: 1, beta: 2 }), { key: { alpha: 'shared', beta: 'shared' } })
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain('Storage key \'shared\'')
+	})
+
+	it('warns for entries covering exactly the same state', () => {
+		usePlugin(syncStorage())
+		createStore(() => ({ alpha: 1 }), [{ key: 'shared' }, { key: 'shared' }])
+		expect(warn).toHaveBeenCalledTimes(1)
+	})
+
+	it('does not warn for non-colliding mapped keys', () => {
+		usePlugin(syncStorage())
+		createStore(() => ({ alpha: 1, beta: 2 }), { key: { alpha: 'alpha-value', beta: 'beta-value' } })
+		expect(warn).not.toHaveBeenCalled()
+	})
+
+	it('warns for keys shared across stores and releases them on dispose', () => {
+		usePlugin(syncStorage(), 'app')
+		const persist = { key: { alpha: 'shared' } }
+		const first = createStore(() => ({ alpha: 1 }), persist)
+		const second = createStore(() => ({ alpha: 2 }), persist)
+		expect(warn).toHaveBeenCalledTimes(1)
+		expect(warn.mock.calls[0][0]).toContain('Storage key \'app:shared\'')
+
+		first.$dispose()
+		second.$dispose()
+		createStore(() => ({ alpha: 3 }), persist)
+		expect(warn).toHaveBeenCalledTimes(1)
+	})
+
+	it('does not repeat collision warnings for hot module replacement stores', () => {
+		usePlugin(syncStorage())
+		const persist = [{ include: 'alpha' }, { include: 'beta' }]
+		const id = `store-${++storeId}`
+		const store = defineStore(id, { state: () => ({ alpha: 1, beta: 2 }), persist: persist as any })()
+		defineStore(id, { state: () => ({ alpha: 3, beta: 4 }), persist: persist as any })(getActivePinia(), store)
+		expect(warn).toHaveBeenCalledTimes(1)
+	})
+
+	it('does not warn for skipped client-only entries', () => {
+		usePlugin(syncStorage())
+		createStore(() => ({ alpha: 1 }), [{}, { clientOnly: true }, { clientOnly: true }])
+		expect(warn).not.toHaveBeenCalled()
 	})
 })
